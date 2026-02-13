@@ -41,15 +41,6 @@
             border-color: #10b981;
         }
         
-        /* Toggle switch */
-        .toggle-checkbox:checked {
-            right: 0;
-            border-color: #10b981;
-        }
-        .toggle-checkbox:checked + .toggle-label {
-            background-color: #10b981;
-        }
-        
         /* Toast notification */
         .toast {
             position: fixed;
@@ -75,6 +66,18 @@
         }
         .toast.success { border-left: 4px solid #10b981; }
         .toast.error { border-left: 4px solid #ef4444; }
+        
+        /* Código de assinatura */
+        .code-display {
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+        .copy-btn {
+            transition: all 0.2s;
+        }
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
@@ -97,16 +100,22 @@
                     <p class="text-[10px] text-slate-400 uppercase tracking-wider">Painel Administrativo</p>
                 </div>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
                 <button onclick="showTab('dashboard')" class="p-2 text-slate-400 hover:text-white transition-colors md:hidden" id="nav-dashboard">
                     <i class="fas fa-chart-line text-xl"></i>
                 </button>
                 <button onclick="showTab('produtos')" class="p-2 text-slate-400 hover:text-white transition-colors md:hidden" id="nav-produtos">
                     <i class="fas fa-box text-xl"></i>
                 </button>
+                <button onclick="showTab('assinaturas')" class="p-2 text-slate-400 hover:text-white transition-colors md:hidden" id="nav-assinaturas">
+                    <i class="fas fa-credit-card text-xl"></i>
+                </button>
                 <button onclick="showTab('pedidos')" class="p-2 text-slate-400 hover:text-white transition-colors relative" id="nav-pedidos">
                     <i class="fas fa-shopping-bag text-xl"></i>
                     <span id="notif-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
+                </button>
+                <button onclick="showTab('config')" class="p-2 text-slate-400 hover:text-white transition-colors" id="nav-config">
+                    <i class="fas fa-cog text-xl"></i>
                 </button>
             </div>
         </div>
@@ -132,9 +141,15 @@
             <button onclick="showTab('produtos')" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all hover:bg-slate-800 text-slate-300 hover:text-white" id="btn-produtos">
                 <i class="fas fa-box w-5"></i> Produtos
             </button>
+            <button onclick="showTab('assinaturas')" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all hover:bg-slate-800 text-slate-300 hover:text-white" id="btn-assinaturas">
+                <i class="fas fa-credit-card w-5"></i> Assinaturas
+            </button>
             <button onclick="showTab('pedidos')" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all hover:bg-slate-800 text-slate-300 hover:text-white" id="btn-pedidos">
                 <i class="fas fa-shopping-bag w-5"></i> Pedidos
                 <span id="menu-notif" class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full hidden">0</span>
+            </button>
+            <button onclick="showTab('config')" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all hover:bg-slate-800 text-slate-300 hover:text-white" id="btn-config">
+                <i class="fas fa-cog w-5"></i> Configurações
             </button>
         </div>
     </nav>
@@ -242,6 +257,64 @@
             </div>
         </section>
 
+        <!-- Assinaturas -->
+        <section id="tab-assinaturas" class="hidden animate-fade-in space-y-6">
+            <!-- Gerador de Código -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                    <i class="fas fa-key text-amber-400"></i> Gerar Código de Assinatura
+                </h3>
+                
+                <div class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input id="sub-nome" type="text" placeholder="Nome do Cliente" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+                        <input id="sub-email" type="email" placeholder="Email do Cliente" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <select id="sub-plano" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500">
+                            <option value="mensal">Plano Mensal</option>
+                            <option value="trimestral">Plano Trimestral</option>
+                            <option value="semestral">Plano Semestral</option>
+                            <option value="anual">Plano Anual</option>
+                        </select>
+                        <input id="sub-valor" type="number" step="0.01" placeholder="Valor (R$)" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+                        <input id="sub-duracao" type="number" placeholder="Duração (dias)" value="30" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500">
+                        <button onclick="gerarCodigoAssinatura()" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                            <i class="fas fa-magic"></i> Gerar Código
+                        </button>
+                    </div>
+
+                    <!-- Área do Código Gerado -->
+                    <div id="area-codigo-gerado" class="hidden mt-4 p-4 bg-slate-800/50 rounded-xl border border-amber-500/30">
+                        <p class="text-sm text-slate-400 mb-2">Código Único Gerado:</p>
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3">
+                                <span id="codigo-gerado" class="code-display text-xl font-bold text-amber-400 tracking-widest"></span>
+                            </div>
+                            <button onclick="copiarCodigo()" class="copy-btn bg-slate-700 hover:bg-slate-600 text-white px-4 py-3 rounded-xl flex items-center gap-2">
+                                <i class="fas fa-copy"></i> Copiar
+                            </button>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2">
+                            <i class="fas fa-info-circle"></i> Este código é único e deve ser enviado ao cliente para ativação da assinatura.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Assinaturas Ativas -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+                <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+                    <h3 class="font-bold">Assinaturas Ativas</h3>
+                    <span id="total-assinaturas" class="text-sm text-slate-400">0 ativas</span>
+                </div>
+                <div id="lista-assinaturas" class="divide-y divide-slate-800 max-h-[400px] overflow-y-auto custom-scrollbar">
+                    <p class="text-slate-500 text-center py-8">Nenhuma assinatura ativa</p>
+                </div>
+            </div>
+        </section>
+
         <!-- Pedidos -->
         <section id="tab-pedidos" class="hidden animate-fade-in space-y-4">
             <!-- Filtros -->
@@ -260,6 +333,68 @@
             </div>
 
             <div id="lista-pedidos" class="space-y-3 pb-20"></div>
+        </section>
+
+        <!-- Configurações -->
+        <section id="tab-config" class="hidden animate-fade-in space-y-6">
+            <!-- Config Telegram -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                    <i class="fab fa-telegram text-blue-400"></i> Bot do Telegram
+                </h3>
+                <p class="text-sm text-slate-400 mb-4">Configure o bot para receber notificações quando um cliente finalizar um pedido.</p>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Bot Token</label>
+                        <input id="telegram-token" type="password" placeholder="123456789:ABCdefGHIjklMNOpqrSTUvwxyz" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 font-mono text-sm">
+                        <p class="text-xs text-slate-500 mt-1">Obtenha com @BotFather no Telegram</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Chat ID</label>
+                        <input id="telegram-chatid" type="text" placeholder="-1001234567890 ou 123456789" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 font-mono text-sm">
+                        <p class="text-xs text-slate-500 mt-1">ID do chat onde o bot enviará as mensagens</p>
+                    </div>
+                    
+                    <div class="flex gap-3">
+                        <button onclick="salvarConfigTelegram()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                            <i class="fas fa-save"></i> Salvar Configuração
+                        </button>
+                        <button onclick="testarBotTelegram()" class="px-4 bg-slate-700 hover:bg-slate-600 text-white font-semibold py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                            <i class="fas fa-paper-plane"></i> Testar
+                        </button>
+                    </div>
+                    
+                    <div id="telegram-status" class="hidden p-3 rounded-lg text-sm flex items-center gap-2">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Configuração salva!</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Config Gerais -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                    <i class="fas fa-store text-emerald-400"></i> Configurações da Loja
+                </h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">Nome da Loja</label>
+                        <input id="config-nome" type="text" value="Bill Rizzo" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-1">WhatsApp de Contato</label>
+                        <input id="config-whats" type="text" placeholder="(11) 99999-9999" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    
+                    <button onclick="salvarConfigLoja()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fas fa-save"></i> Salvar Configurações
+                    </button>
+                </div>
+            </div>
         </section>
 
     </main>
@@ -348,7 +483,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC4g-r04tQ1PC72FpuNXJ8r7-1gTyD0CMc",
@@ -364,10 +499,12 @@
 
         let pedidosData = [];
         let produtosData = [];
+        let assinaturasData = [];
         let pedidoAtual = null;
         let filtroAtual = 'todos';
         let imagemBase64 = null;
         let totalOriginal = 0;
+        let configTelegram = { token: '', chatId: '' };
 
         // Toast
         function showToast(msg, type = 'success') {
@@ -457,7 +594,6 @@
 
                 await addDoc(collection(db, "produtos"), data);
                 
-                // Limpar formulário
                 document.getElementById('p-nome').value = '';
                 document.getElementById('p-preco').value = '';
                 document.getElementById('p-desc').value = '';
@@ -467,7 +603,6 @@
                 showToast('Produto cadastrado com sucesso!');
                 
             } catch (error) {
-                console.error("Erro:", error);
                 showToast('Erro ao salvar: ' + error.message, 'error');
             } finally {
                 btn.innerHTML = originalHTML;
@@ -480,6 +615,224 @@
             await updateDoc(doc(db, "produtos", id), { ativo: !atual });
             showToast(atual ? 'Produto oculto' : 'Produto visível');
         };
+
+        // ========== ASSINATURAS ==========
+        
+        // Gerar código único
+        function gerarCodigoUnico() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let codigo = '';
+            for (let i = 0; i < 12; i++) {
+                if (i > 0 && i % 4 === 0) codigo += '-';
+                codigo += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return codigo;
+        }
+
+        window.gerarCodigoAssinatura = async () => {
+            const nome = document.getElementById('sub-nome').value.trim();
+            const email = document.getElementById('sub-email').value.trim();
+            const plano = document.getElementById('sub-plano').value;
+            const valor = Number(document.getElementById('sub-valor').value);
+            const duracao = Number(document.getElementById('sub-duracao').value) || 30;
+            
+            if (!nome || !email || !valor) {
+                showToast('Preencha todos os campos!', 'error');
+                return;
+            }
+
+            const codigo = gerarCodigoUnico();
+            const dataInicio = new Date();
+            const dataFim = new Date();
+            dataFim.setDate(dataFim.getDate() + duracao);
+
+            try {
+                await addDoc(collection(db, "assinaturas"), {
+                    codigo: codigo,
+                    cliente: nome,
+                    email: email,
+                    plano: plano,
+                    valor: valor,
+                    duracao: duracao,
+                    dataInicio: dataInicio,
+                    dataFim: dataFim,
+                    ativa: true,
+                    usada: false,
+                    dataCriacao: new Date()
+                });
+
+                // Mostrar código gerado
+                document.getElementById('codigo-gerado').innerText = codigo;
+                document.getElementById('area-codigo-gerado').classList.remove('hidden');
+                
+                // Limpar campos
+                document.getElementById('sub-nome').value = '';
+                document.getElementById('sub-email').value = '';
+                document.getElementById('sub-valor').value = '';
+                
+                showToast('Código gerado com sucesso!');
+                
+            } catch (error) {
+                showToast('Erro ao gerar código: ' + error.message, 'error');
+            }
+        };
+
+        window.copiarCodigo = () => {
+            const codigo = document.getElementById('codigo-gerado').innerText;
+            navigator.clipboard.writeText(codigo).then(() => {
+                showToast('Código copiado!');
+            });
+        };
+
+        // Carregar Assinaturas
+        onSnapshot(query(collection(db, "assinaturas"), orderBy("dataCriacao", "desc")), (snapshot) => {
+            const container = document.getElementById('lista-assinaturas');
+            const totalEl = document.getElementById('total-assinaturas');
+            assinaturasData = [];
+            
+            const ativas = snapshot.docs.filter(d => d.data().ativa && !d.data().usada);
+            totalEl.innerText = `${ativas.length} ativas`;
+
+            if (snapshot.empty) {
+                container.innerHTML = '<p class="text-slate-500 text-center py-8">Nenhuma assinatura cadastrada</p>';
+                return;
+            }
+
+            container.innerHTML = snapshot.docs.map(docSnap => {
+                const s = { id: docSnap.id, ...docSnap.data() };
+                assinaturasData.push(s);
+                
+                const dataFim = s.dataFim?.toDate();
+                const hoje = new Date();
+                const diasRestantes = dataFim ? Math.ceil((dataFim - hoje) / (1000 * 60 * 60 * 24)) : 0;
+                const expirada = diasRestantes < 0;
+                
+                return `
+                    <div class="p-4 flex items-center justify-between hover:bg-slate-800/50 transition-colors ${expirada ? 'opacity-50' : ''}">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-medium text-white">${s.cliente}</h4>
+                                <span class="text-xs px-2 py-0.5 rounded-full ${s.usada ? 'bg-blue-500/20 text-blue-400' : s.ativa ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}">
+                                    ${s.usada ? 'Usada' : s.ativa ? 'Ativa' : 'Inativa'}
+                                </span>
+                            </div>
+                            <p class="text-sm text-slate-400 font-mono">${s.codigo}</p>
+                            <p class="text-xs text-slate-500 mt-1">
+                                ${s.plano} • R$ ${s.valor?.toFixed(2)} • 
+                                ${expirada ? 'Expirada' : diasRestantes + ' dias restantes'}
+                            </p>
+                        </div>
+                        <button onclick="copiarCodigoAssinatura('${s.codigo}')" class="p-2 text-slate-400 hover:text-white transition-colors" title="Copiar código">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>`;
+            }).join('');
+        });
+
+        window.copiarCodigoAssinatura = (codigo) => {
+            navigator.clipboard.writeText(codigo).then(() => {
+                showToast('Código copiado!');
+            });
+        };
+
+        // ========== CONFIGURAÇÕES TELEGRAM ==========
+
+        // Carregar config salva
+        async function carregarConfig() {
+            try {
+                const configDoc = await getDoc(doc(db, "config", "telegram"));
+                if (configDoc.exists()) {
+                    configTelegram = configDoc.data();
+                    document.getElementById('telegram-token').value = configTelegram.token || '';
+                    document.getElementById('telegram-chatid').value = configTelegram.chatId || '';
+                }
+                
+                const lojaDoc = await getDoc(doc(db, "config", "loja"));
+                if (lojaDoc.exists()) {
+                    const data = lojaDoc.data();
+                    document.getElementById('config-nome').value = data.nome || 'Bill Rizzo';
+                    document.getElementById('config-whats').value = data.whatsapp || '';
+                }
+            } catch (error) {
+                console.log("Erro ao carregar config:", error);
+            }
+        }
+
+        window.salvarConfigTelegram = async () => {
+            const token = document.getElementById('telegram-token').value.trim();
+            const chatId = document.getElementById('telegram-chatid').value.trim();
+            
+            if (!token || !chatId) {
+                showToast('Preencha token e chat ID!', 'error');
+                return;
+            }
+
+            try {
+                await setDoc(doc(db, "config", "telegram"), {
+                    token: token,
+                    chatId: chatId,
+                    ativo: true,
+                    dataAtualizacao: new Date()
+                });
+                
+                configTelegram = { token, chatId };
+                
+                const statusEl = document.getElementById('telegram-status');
+                statusEl.classList.remove('hidden');
+                statusEl.className = 'p-3 rounded-lg text-sm flex items-center gap-2 bg-emerald-500/20 text-emerald-400';
+                statusEl.innerHTML = '<i class="fas fa-check-circle"></i><span>Configuração salva!</span>';
+                
+                showToast('Configuração do Telegram salva!');
+                
+            } catch (error) {
+                showToast('Erro ao salvar: ' + error.message, 'error');
+            }
+        };
+
+        window.testarBotTelegram = async () => {
+            if (!configTelegram.token || !configTelegram.chatId) {
+                showToast('Salve a configuração primeiro!', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${configTelegram.token}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: configTelegram.chatId,
+                        text: '🧪 *Teste de Configuração*\n\nBot configurado com sucesso no Bill Rizzo!',
+                        parse_mode: 'Markdown'
+                    })
+                });
+
+                if (response.ok) {
+                    showToast('Mensagem de teste enviada!');
+                } else {
+                    showToast('Erro ao enviar. Verifique token e chat ID.', 'error');
+                }
+            } catch (error) {
+                showToast('Erro de conexão com Telegram', 'error');
+            }
+        };
+
+        window.salvarConfigLoja = async () => {
+            const nome = document.getElementById('config-nome').value.trim();
+            const whats = document.getElementById('config-whats').value.trim();
+            
+            try {
+                await setDoc(doc(db, "config", "loja"), {
+                    nome: nome,
+                    whatsapp: whats,
+                    dataAtualizacao: new Date()
+                });
+                showToast('Configurações da loja salvas!');
+            } catch (error) {
+                showToast('Erro ao salvar', 'error');
+            }
+        };
+
+        // ========== PEDIDOS (com notificação Telegram) ==========
 
         // Carregar Produtos
         onSnapshot(query(collection(db, "produtos"), orderBy("dataCriacao", "desc")), (snapshot) => {
@@ -529,6 +882,35 @@
             aplicarFiltros();
             atualizarDashboard();
         });
+
+        // Enviar notificação Telegram quando novo pedido
+        async function notificarTelegramNovoPedido(pedido) {
+            if (!configTelegram.token || !configTelegram.chatId) return;
+            
+            const itensText = pedido.itens.map(i => `• ${i.nome} - R$ ${i.preco.toFixed(2)}`).join('\n');
+            const msg = `🛒 *NOVO PEDIDO - Bill Rizzo*\n\n` +
+                       `👤 *Cliente:* ${pedido.cliente}\n` +
+                       `📱 *WhatsApp:* ${pedido.whats || 'Não informado'}\n` +
+                       `📍 *Endereço:* ${pedido.endereco || 'Não informado'}\n\n` +
+                       `📦 *Itens:*\n${itensText}\n\n` +
+                       `💰 *Total:* R$ ${pedido.total.toFixed(2)}\n` +
+                       `⏰ *Data:* ${new Date().toLocaleString('pt-BR')}\n\n` +
+                       `Status: ⏳ Pendente`;
+            
+            try {
+                await fetch(`https://api.telegram.org/bot${configTelegram.token}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: configTelegram.chatId,
+                        text: msg,
+                        parse_mode: 'Markdown'
+                    })
+                });
+            } catch (error) {
+                console.error("Erro ao notificar Telegram:", error);
+            }
+        }
 
         // Filtros
         window.filtrarStatus = (status) => {
@@ -628,19 +1010,16 @@
             document.getElementById('modal-total-original').innerText = `R$ ${totalOriginal.toFixed(2)}`;
             document.getElementById('modal-total').innerText = `R$ ${(pedidoAtual.totalFinal || totalOriginal).toFixed(2)}`;
             
-            // Reset desconto
             document.getElementById('aplicar-desconto').checked = false;
             document.getElementById('input-desconto').classList.add('hidden');
             document.getElementById('valor-desconto').value = '';
             document.getElementById('linha-desconto-aplicado').classList.add('hidden');
             
-            // Mostrar desconto se já existir
             if (pedidoAtual.descontoAplicado) {
                 document.getElementById('linha-desconto-aplicado').classList.remove('hidden');
                 document.getElementById('valor-desconto-aplicado').innerText = `-R$ ${pedidoAtual.descontoAplicado.toFixed(2)}`;
             }
             
-            // Mostrar botão avisar apenas se pendente
             const btnAvisar = document.getElementById('btn-avisar');
             if (pedidoAtual.status === 'pendente' && pedidoAtual.whats) {
                 btnAvisar.classList.remove('hidden');
@@ -671,7 +1050,6 @@
             setTimeout(() => modal.classList.add('hidden'), 300);
         };
 
-        // Toggle desconto
         window.toggleDesconto = () => {
             const checkbox = document.getElementById('aplicar-desconto');
             const inputDiv = document.getElementById('input-desconto');
@@ -699,14 +1077,12 @@
             document.getElementById('modal-total').innerText = `R$ ${novoTotal.toFixed(2)}`;
         };
 
-        // Atualizar status
         window.atualizarStatusPedido = async (status) => {
             if (!pedidoAtual) return;
             
             try {
                 const updateData = { status: status };
                 
-                // Se estiver aplicando desconto ao receber
                 if (status === 'recebido' && document.getElementById('aplicar-desconto').checked) {
                     const valor = Number(document.getElementById('valor-desconto').value) || 0;
                     const tipo = document.getElementById('tipo-desconto').value;
@@ -730,7 +1106,6 @@
             }
         };
 
-        // Avisar cliente recebido
         window.avisarClienteRecebido = () => {
             if (!pedidoAtual || !pedidoAtual.whats) {
                 showToast('Cliente sem WhatsApp cadastrado', 'error');
@@ -746,12 +1121,10 @@
             
             window.open(`https://wa.me/55${pedidoAtual.whats.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
             
-            // Marcar como notificado
             updateDoc(doc(db, "pedidos", pedidoAtual.id), { clienteNotificado: true });
             showToast('WhatsApp aberto!');
         };
 
-        // Dashboard
         function atualizarDashboard() {
             const hoje = new Date();
             hoje.setHours(0, 0, 0, 0);
@@ -789,7 +1162,6 @@
             document.getElementById('dash-mes').innerText = `R$ ${totalMes.toFixed(2)}`;
             document.getElementById('dash-pendentes').innerText = pendentes;
             
-            // Ranking
             const ranking = {};
             pedidosData.forEach(p => {
                 if (p.status === 'cancelado') return;
@@ -834,6 +1206,7 @@
 
         // Inicializar
         showTab('dashboard');
+        carregarConfig();
         const hoje = new Date().toISOString().split('T')[0];
         document.getElementById('filtro-data-fim').value = hoje;
     </script>
