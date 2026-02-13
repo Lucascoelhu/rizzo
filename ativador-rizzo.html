@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <title>Bill Rizzo | Gerador de Assinaturas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+        .animate-pop { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        
+        .glass-effect {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(20px);
+        }
+        
+        .code-box {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 2px solid #334155;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .code-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        .input-focus:focus {
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+        }
+        
+        .btn-generate {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            transition: all 0.3s;
+        }
+        
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);
+        }
+        
+        .btn-generate:active {
+            transform: translateY(0);
+        }
+        
+        .success-pulse {
+            animation: successPulse 0.5s ease-out;
+        }
+        
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .copy-flash {
+            animation: copyFlash 0.3s ease-out;
+        }
+        
+        @keyframes copyFlash {
+            0% { background: #10b981; }
+            100% { background: #1e293b; }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="glass-effect border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <i class="fas fa-key text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-white">Gerador de Códigos</h1>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-wider">Bill Rizzo Assinaturas</p>
+                </div>
+            </div>
+            <a href="#" onclick="window.close(); return false;" class="p-2 text-slate-400 hover:text-white transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main -->
+    <main class="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-6">
+
+        <!-- Formulário -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 animate-fade-in">
+            <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Dados do Cliente</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs text-slate-500 mb-1.5">Nome completo</label>
+                    <input id="sub-nome" type="text" placeholder="Ex: João Silva" 
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder-slate-600 focus:outline-none input-focus transition-all">
+                </div>
+                
+                <div>
+                    <label class="block text-xs text-slate-500 mb-1.5">E-mail</label>
+                    <input id="sub-email" type="email" placeholder="Ex: joao@email.com" 
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder-slate-600 focus:outline-none input-focus transition-all">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1.5">Plano</label>
+                        <select id="sub-plano" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:outline-none input-focus transition-all appearance-none cursor-pointer">
+                            <option value="mensal">Mensal</option>
+                            <option value="trimestral">Trimestral</option>
+                            <option value="semestral">Semestral</option>
+                            <option value="anual">Anual</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 mb-1.5">Valor (R$)</label>
+                        <input id="sub-valor" type="number" step="0.01" placeholder="0,00" 
+                            class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white placeholder-slate-600 focus:outline-none input-focus transition-all">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-xs text-slate-500 mb-1.5">Duração (dias)</label>
+                    <div class="flex gap-2">
+                        <input id="sub-duracao" type="number" value="30" 
+                            class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-3.5 text-white focus:outline-none input-focus transition-all">
+                        <button onclick="setDuracao(30)" class="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-400 hover:text-white hover:border-slate-600 transition-all">30</button>
+                        <button onclick="setDuracao(90)" class="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-400 hover:text-white hover:border-slate-600 transition-all">90</button>
+                        <button onclick="setDuracao(180)" class="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-400 hover:text-white hover:border-slate-600 transition-all">180</button>
+                        <button onclick="setDuracao(365)" class="px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-400 hover:text-white hover:border-slate-600 transition-all">365</button>
+                    </div>
+                </div>
+            </div>
+            
+            <button onclick="gerarCodigo()" id="btn-gerar" class="w-full btn-generate text-white font-bold py-4 rounded-xl mt-6 flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20">
+                <i class="fas fa-magic"></i>
+                <span>Gerar Código Único</span>
+            </button>
+        </div>
+
+        <!-- Resultado (inicialmente oculto) -->
+        <div id="area-resultado" class="hidden animate-pop">
+            <div class="bg-gradient-to-br from-emerald-900/30 to-slate-900 rounded-2xl border border-emerald-500/30 p-5">
+                <div class="flex items-center gap-2 mb-3 text-emerald-400">
+                    <i class="fas fa-check-circle"></i>
+                    <span class="text-sm font-semibold">Código gerado com sucesso!</span>
+                </div>
+                
+                <div class="code-box rounded-xl p-4 mb-3">
+                    <p class="text-xs text-slate-400 mb-1">Código de ativação:</p>
+                    <div class="flex items-center justify-between gap-3">
+                        <span id="codigo-display" class="font-mono text-2xl font-bold text-amber-400 tracking-widest"></span>
+                        <button onclick="copiarCodigo()" id="btn-copiar" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-all active:scale-95" title="Copiar código">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between text-slate-400">
+                        <span>Cliente:</span>
+                        <span id="res-cliente" class="text-white font-medium"></span>
+                    </div>
+                    <div class="flex justify-between text-slate-400">
+                        <span>Plano:</span>
+                        <span id="res-plano" class="text-white font-medium capitalize"></span>
+                    </div>
+                    <div class="flex justify-between text-slate-400">
+                        <span>Validade:</span>
+                        <span id="res-validade" class="text-white font-medium"></span>
+                    </div>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-slate-700/50 flex gap-3">
+                    <button onclick="enviarWhatsApp()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-medium transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fab fa-whatsapp"></i>
+                        <span>Enviar WhatsApp</span>
+                    </button>
+                    <button onclick="novoCodigo()" class="px-4 bg-slate-800 hover:bg-slate-700 text-white py-3 rounded-xl font-medium transition-all active:scale-95">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Histórico Recentes -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Códigos Recentes</h2>
+                <button onclick="carregarRecentes()" class="text-xs text-slate-500 hover:text-white transition-colors">
+                    <i class="fas fa-sync-alt"></i> Atualizar
+                </button>
+            </div>
+            <div id="lista-recentes" class="space-y-2 max-h-[300px] overflow-y-auto">
+                <p class="text-slate-500 text-center py-4 text-sm">Carregando...</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 -translate-y-4 bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl border border-slate-700 opacity-0 transition-all duration-300 z-50 flex items-center gap-2 pointer-events-none">
+        <i id="toast-icon" class="fas fa-check-circle text-emerald-400"></i>
+        <span id="toast-msg">Mensagem</span>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4g-r04tQ1PC72FpuNXJ8r7-1gTyD0CMc",
+            authDomain: "rizzo-322b9.firebaseapp.com",
+            projectId: "rizzo-322b9",
+            storageBucket: "rizzo-322b9.firebasestorage.app",
+            messagingSenderId: "333072750494",
+            appId: "1:333072750494:web:e4638196d8bc9c5004288f"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let codigoAtual = '';
+        let dadosAtual = {};
+
+        // Atalhos de duração
+        window.setDuracao = (dias) => {
+            document.getElementById('sub-duracao').value = dias;
+        };
+
+        // Gerar código único
+        function gerarCodigoUnico() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let codigo = '';
+            for (let i = 0; i < 12; i++) {
+                if (i > 0 && i % 4 === 0) codigo += '-';
+                codigo += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return codigo;
+        }
+
+        // Toast
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toast-icon');
+            const toastMsg = document.getElementById('toast-msg');
+            
+            toastMsg.innerText = msg;
+            toastIcon.className = type === 'success' ? 'fas fa-check-circle text-emerald-400' : 'fas fa-exclamation-circle text-red-400';
+            
+            toast.classList.remove('opacity-0', '-translate-y-4', 'pointer-events-none');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', '-translate-y-4', 'pointer-events-none');
+                toast.classList.remove('opacity-100', 'translate-y-0');
+            }, 3000);
+        }
+
+        // Gerar e salvar
+        window.gerarCodigo = async () => {
+            const nome = document.getElementById('sub-nome').value.trim();
+            const email = document.getElementById('sub-email').value.trim();
+            const plano = document.getElementById('sub-plano').value;
+            const valor = Number(document.getElementById('sub-valor').value);
+            const duracao = Number(document.getElementById('sub-duracao').value) || 30;
+
+            if (!nome || !email || !valor) {
+                showToast('Preencha todos os campos!', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('btn-gerar');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
+            btn.disabled = true;
+
+            try {
+                codigoAtual = gerarCodigoUnico();
+                const dataInicio = new Date();
+                const dataFim = new Date();
+                dataFim.setDate(dataFim.getDate() + duracao);
+
+                await addDoc(collection(db, "assinaturas"), {
+                    codigo: codigoAtual,
+                    cliente: nome,
+                    email: email,
+                    plano: plano,
+                    valor: valor,
+                    duracao: duracao,
+                    dataInicio: dataInicio,
+                    dataFim: dataFim,
+                    ativa: true,
+                    usada: false,
+                    dataCriacao: new Date()
+                });
+
+                dadosAtual = { nome, email, plano, valor, dataFim };
+
+                // Mostrar resultado
+                document.getElementById('codigo-display').innerText = codigoAtual;
+                document.getElementById('res-cliente').innerText = nome;
+                document.getElementById('res-plano').innerText = plano;
+                document.getElementById('res-validade').innerText = dataFim.toLocaleDateString('pt-BR');
+                
+                document.getElementById('area-resultado').classList.remove('hidden');
+                document.getElementById('area-resultado').scrollIntoView({ behavior: 'smooth' });
+
+                // Limpar formulário
+                document.getElementById('sub-nome').value = '';
+                document.getElementById('sub-email').value = '';
+                document.getElementById('sub-valor').value = '';
+                document.getElementById('sub-duracao').value = '30';
+
+                showToast('Código gerado e salvo!');
+
+            } catch (error) {
+                console.error(error);
+                showToast('Erro ao gerar código', 'error');
+            } finally {
+                btn.innerHTML = '<i class="fas fa-magic"></i><span>Gerar Código Único</span>';
+                btn.disabled = false;
+            }
+        };
+
+        // Copiar código
+        window.copiarCodigo = () => {
+            navigator.clipboard.writeText(codigoAtual).then(() => {
+                const btn = document.getElementById('btn-copiar');
+                btn.classList.add('copy-flash');
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                showToast('Código copiado!');
+                
+                setTimeout(() => {
+                    btn.classList.remove('copy-flash');
+                    btn.innerHTML = '<i class="fas fa-copy"></i>';
+                }, 2000);
+            });
+        };
+
+        // Enviar WhatsApp
+        window.enviarWhatsApp = () => {
+            if (!dadosAtual.nome) return;
+            
+            const msg = `Olá ${dadosAtual.nome}! 👋\n\n` +
+                       `✅ Sua assinatura foi criada!\n\n` +
+                       `📋 *Código:* ${codigoAtual}\n` +
+                       `🔰 *Plano:* ${dadosAtual.plano.charAt(0).toUpperCase() + dadosAtual.plano.slice(1)}\n` +
+                       `💰 *Valor:* R$ ${dadosAtual.valor.toFixed(2)}\n` +
+                       `📅 *Válido até:* ${dadosAtual.dataFim.toLocaleDateString('pt-BR')}\n\n` +
+                       `Use seu código para ativar sua assinatura na Bill Rizzo!\n\n` +
+                       `Obrigado! 🚀`;
+            
+            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+        };
+
+        // Novo código
+        window.novoCodigo = () => {
+            document.getElementById('area-resultado').classList.add('hidden');
+            document.getElementById('sub-nome').focus();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        // Carregar códigos recentes
+        window.carregarRecentes = () => {
+            const container = document.getElementById('lista-recentes');
+            container.innerHTML = '<p class="text-slate-500 text-center py-4 text-sm"><i class="fas fa-spinner fa-spin"></i> Carregando...</p>';
+        };
+
+        // Real-time recentes
+        onSnapshot(query(collection(db, "assinaturas"), orderBy("dataCriacao", "desc"), limit(10)), (snapshot) => {
+            const container = document.getElementById('lista-recentes');
+            
+            if (snapshot.empty) {
+                container.innerHTML = '<p class="text-slate-500 text-center py-4 text-sm">Nenhum código gerado ainda</p>';
+                return;
+            }
+
+            container.innerHTML = snapshot.docs.map(doc => {
+                const s = doc.data();
+                const data = s.dataCriacao?.toDate();
+                const dataStr = data ? data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+                
+                return `
+                    <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-slate-600 transition-all">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium text-white text-sm truncate">${s.cliente}</p>
+                            <p class="font-mono text-xs text-amber-400 mt-0.5">${s.codigo}</p>
+                            <p class="text-[10px] text-slate-500 mt-1">${s.plano} • ${dataStr}</p>
+                        </div>
+                        <button onclick="copiarCodigoExterno('${s.codigo}')" class="p-2 text-slate-400 hover:text-white transition-colors" title="Copiar">
+                            <i class="fas fa-copy text-sm"></i>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        });
+
+        window.copiarCodigoExterno = (codigo) => {
+            navigator.clipboard.writeText(codigo).then(() => {
+                showToast('Código copiado!');
+            });
+        };
+
+        // Inicializar
+        carregarRecentes();
+    </script>
+</body>
+</html>
