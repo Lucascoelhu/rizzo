@@ -23,16 +23,69 @@
         .status-pendente { border-left: 4px solid #f59e0b; }
         .status-recebido { border-left: 4px solid #10b981; }
         .status-cancelado { border-left: 4px solid #ef4444; }
-        .toggle-checkbox:checked { right: 0; border-color: #10b981; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #10b981; }
         input, select, button { font-size: 16px; }
         .safe-area-top { padding-top: env(safe-area-inset-top); }
         .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+        
+        /* Upload de imagem */
+        .upload-area {
+            border: 2px dashed #475569;
+            transition: all 0.3s;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+        .upload-area.has-image {
+            border-style: solid;
+            border-color: #10b981;
+        }
+        
+        /* Toggle switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #10b981;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #10b981;
+        }
+        
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: #1e293b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 100;
+            opacity: 0;
+            transition: all 0.3s;
+            border: 1px solid #334155;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast.success { border-left: 4px solid #10b981; }
+        .toast.error { border-left: 4px solid #ef4444; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
 
-    <!-- Header Mobile -->
+    <!-- Toast -->
+    <div id="toast" class="toast">
+        <i class="fas fa-check-circle text-emerald-400"></i>
+        <span id="toast-msg">Operação realizada!</span>
+    </div>
+
+    <!-- Header -->
     <header class="fixed top-0 w-full bg-slate-900/95 backdrop-blur-md border-b border-slate-800 z-40 safe-area-top">
         <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -59,7 +112,7 @@
         </div>
     </header>
 
-    <!-- Navegação Desktop -->
+    <!-- Nav Desktop -->
     <nav class="hidden md:block fixed left-0 top-0 h-full w-64 bg-slate-900 border-r border-slate-800 z-50 pt-6">
         <div class="px-6 mb-8">
             <div class="flex items-center gap-3">
@@ -86,7 +139,7 @@
         </div>
     </nav>
 
-    <!-- Conteúdo Principal -->
+    <!-- Main -->
     <main class="md:ml-64 pt-20 pb-24 px-4 max-w-6xl mx-auto">
 
         <!-- Dashboard -->
@@ -106,7 +159,6 @@
                         <i class="fas fa-calendar-week text-purple-400"></i>
                     </div>
                     <p class="text-2xl font-bold text-white" id="dash-semana">R$ 0,00</p>
-                    <p class="text-xs text-slate-500 mt-1">Últimos 7 dias</p>
                 </div>
                 <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800">
                     <div class="flex items-center justify-between mb-2">
@@ -114,7 +166,6 @@
                         <i class="fas fa-calendar-alt text-emerald-400"></i>
                     </div>
                     <p class="text-2xl font-bold text-white" id="dash-mes">R$ 0,00</p>
-                    <p class="text-xs text-slate-500 mt-1">Este mês</p>
                 </div>
                 <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800">
                     <div class="flex items-center justify-between mb-2">
@@ -122,56 +173,72 @@
                         <i class="fas fa-clock text-amber-400"></i>
                     </div>
                     <p class="text-2xl font-bold text-white" id="dash-pendentes">0</p>
-                    <p class="text-xs text-slate-500 mt-1">Aguardando</p>
                 </div>
             </div>
 
             <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6">
                 <h3 class="text-lg font-bold mb-4">Produtos Mais Vendidos</h3>
                 <div id="ranking-produtos" class="space-y-3">
-                    <p class="text-slate-500 text-center py-8">Carregando dados...</p>
+                    <p class="text-slate-500 text-center py-8">Carregando...</p>
                 </div>
             </div>
         </section>
 
         <!-- Produtos -->
         <section id="tab-produtos" class="hidden animate-fade-in space-y-6">
-            <!-- Form Novo Produto -->
+            <!-- Form -->
             <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6">
                 <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
                     <i class="fas fa-plus-circle text-blue-400"></i> Novo Produto
                 </h3>
+                
+                <!-- Upload de Imagem -->
+                <div class="mb-4">
+                    <label class="block text-sm text-slate-400 mb-2">Foto do Produto</label>
+                    <div id="upload-area" class="upload-area rounded-xl p-6 text-center cursor-pointer relative overflow-hidden" onclick="document.getElementById('file-input').click()">
+                        <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                        <div id="upload-placeholder">
+                            <i class="fas fa-cloud-upload-alt text-3xl text-slate-500 mb-2"></i>
+                            <p class="text-sm text-slate-400">Clique para adicionar foto</p>
+                            <p class="text-xs text-slate-600 mt-1">JPG, PNG até 5MB</p>
+                        </div>
+                        <img id="image-preview" class="absolute inset-0 w-full h-full object-cover hidden" />
+                        <button id="remove-image" onclick="event.stopPropagation(); removeImage()" class="absolute top-2 right-2 bg-red-500 text-white w-8 h-8 rounded-full hidden z-10 hover:bg-red-600">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <input type="hidden" id="p-imagem" />
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input id="p-nome" type="text" placeholder="Nome do Produto" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors">
+                    <input id="p-nome" type="text" placeholder="Nome do Produto" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
                     <div class="grid grid-cols-2 gap-3">
                         <input id="p-preco" type="number" step="0.01" placeholder="Preço (R$)" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
                         <input id="p-desc" type="number" step="0.01" placeholder="Desconto (R$)" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
                     </div>
                     <div class="flex items-center gap-4">
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input id="p-destaque" type="checkbox" class="w-5 h-5 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500">
+                            <input id="p-destaque" type="checkbox" class="w-5 h-5 rounded border-slate-600 bg-slate-800 text-blue-500">
                             <span class="text-sm text-slate-300">Destaque</span>
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer">
-                            <input id="p-ativo" type="checkbox" checked class="w-5 h-5 rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500">
+                            <input id="p-ativo" type="checkbox" checked class="w-5 h-5 rounded border-slate-600 bg-slate-800 text-emerald-500">
                             <span class="text-sm text-slate-300">Visível</span>
                         </label>
                     </div>
-                    <button onclick="salvarProduto()" class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2">
-                        <i class="fas fa-save"></i> Cadastrar Produto
+                    <button onclick="salvarProduto()" id="btn-salvar" class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fas fa-save"></i> <span>Cadastrar Produto</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Lista de Produtos -->
+            <!-- Lista -->
             <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
                 <div class="p-4 border-b border-slate-800 flex justify-between items-center">
                     <h3 class="font-bold">Produtos Cadastrados</h3>
                     <span id="total-produtos" class="text-sm text-slate-400">0 itens</span>
                 </div>
-                <div id="lista-produtos-admin" class="divide-y divide-slate-800 max-h-[500px] overflow-y-auto custom-scrollbar">
-                    <p class="text-slate-500 text-center py-8">Carregando produtos...</p>
-                </div>
+                <div id="lista-produtos-admin" class="divide-y divide-slate-800 max-h-[500px] overflow-y-auto custom-scrollbar"></div>
             </div>
         </section>
 
@@ -180,27 +247,24 @@
             <!-- Filtros -->
             <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 space-y-3">
                 <div class="flex flex-wrap gap-2">
-                    <button onclick="filtrarStatus('todos')" class="filtro-btn active px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white transition-all" data-filter="todos">Todos</button>
-                    <button onclick="filtrarStatus('pendente')" class="filtro-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-slate-400 hover:bg-slate-700 transition-all" data-filter="pendente">Pendentes</button>
-                    <button onclick="filtrarStatus('recebido')" class="filtro-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-slate-400 hover:bg-slate-700 transition-all" data-filter="recebido">Recebidos</button>
-                    <button onclick="filtrarStatus('cancelado')" class="filtro-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-slate-400 hover:bg-slate-700 transition-all" data-filter="cancelado">Cancelados</button>
+                    <button onclick="filtrarStatus('todos')" class="filtro-btn active px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white" data-filter="todos">Todos</button>
+                    <button onclick="filtrarStatus('pendente')" class="filtro-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-slate-400" data-filter="pendente">Pendentes</button>
+                    <button onclick="filtrarStatus('recebido')" class="filtro-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-slate-400" data-filter="recebido">Recebidos</button>
+                    <button onclick="filtrarStatus('cancelado')" class="filtro-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-slate-400" data-filter="cancelado">Cancelados</button>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <input type="date" id="filtro-data-inicio" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white" onchange="aplicarFiltros()">
                     <input type="date" id="filtro-data-fim" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white" onchange="aplicarFiltros()">
                 </div>
-                <input type="text" id="filtro-busca" placeholder="Buscar por cliente..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-500" oninput="aplicarFiltros()">
+                <input type="text" id="filtro-busca" placeholder="Buscar por cliente..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white" oninput="aplicarFiltros()">
             </div>
 
-            <!-- Lista Pedidos -->
-            <div id="lista-pedidos" class="space-y-3 pb-20">
-                <p class="text-slate-500 text-center py-12">Carregando pedidos...</p>
-            </div>
+            <div id="lista-pedidos" class="space-y-3 pb-20"></div>
         </section>
 
     </main>
 
-    <!-- Modal Detalhes Pedido -->
+    <!-- Modal Pedido -->
     <div id="modal-pedido" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300 flex items-end md:items-center justify-center p-4">
         <div class="bg-slate-900 w-full max-w-md rounded-3xl border border-slate-700 transform translate-y-full md:translate-y-0 transition-transform duration-300 max-h-[90vh] overflow-hidden flex flex-col">
             <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
@@ -208,51 +272,83 @@
                     <h3 class="text-xl font-bold text-white">Pedido #<span id="modal-id"></span></h3>
                     <p class="text-sm text-slate-400" id="modal-data"></p>
                 </div>
-                <button onclick="fecharModal()" class="p-2 hover:bg-slate-700 rounded-full transition-colors">
+                <button onclick="fecharModal()" class="p-2 hover:bg-slate-700 rounded-full">
                     <i class="fas fa-times text-slate-400"></i>
                 </button>
             </div>
+            
             <div class="p-6 overflow-y-auto flex-1 space-y-4">
                 <div>
-                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Cliente</p>
+                    <p class="text-xs text-slate-500 uppercase mb-1">Cliente</p>
                     <p class="text-lg font-semibold text-white" id="modal-cliente"></p>
                     <p class="text-sm text-slate-400" id="modal-whats"></p>
                 </div>
+                
                 <div>
-                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Endereço</p>
+                    <p class="text-xs text-slate-500 uppercase mb-1">Endereço</p>
                     <p class="text-sm text-slate-300" id="modal-endereco"></p>
                 </div>
-                <div class="bg-slate-800/50 rounded-xl p-4 space-y-2">
-                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Itens</p>
+
+                <!-- Desconto opcional -->
+                <div id="secao-desconto" class="bg-slate-800/50 rounded-xl p-4 border border-slate-700">
+                    <label class="flex items-center gap-2 mb-2 cursor-pointer">
+                        <input type="checkbox" id="aplicar-desconto" class="w-4 h-4 rounded border-slate-600 bg-slate-700 text-emerald-500" onchange="toggleDesconto()">
+                        <span class="text-sm text-slate-300">Aplicar desconto adicional</span>
+                    </label>
+                    <div id="input-desconto" class="hidden">
+                        <div class="flex gap-2">
+                            <input type="number" id="valor-desconto" step="0.01" placeholder="Valor (R$)" class="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white" oninput="calcularTotal()">
+                            <select id="tipo-desconto" class="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white" onchange="calcularTotal()">
+                                <option value="fixo">R$</option>
+                                <option value="percent">%</option>
+                            </select>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2">Novo total: <span id="novo-total" class="text-emerald-400 font-bold"></span></p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/50 rounded-xl p-4">
+                    <p class="text-xs text-slate-500 uppercase mb-2">Itens</p>
                     <div id="modal-itens" class="space-y-2"></div>
                     <div class="border-t border-slate-700 pt-2 mt-2 flex justify-between items-center">
-                        <span class="text-slate-400">Total</span>
-                        <span class="text-xl font-bold text-emerald-400" id="modal-total"></span>
+                        <span class="text-slate-400">Total Original</span>
+                        <span class="text-lg text-slate-300" id="modal-total-original"></span>
+                    </div>
+                    <div id="linha-desconto-aplicado" class="hidden flex justify-between items-center text-emerald-400">
+                        <span class="text-sm">Desconto</span>
+                        <span id="valor-desconto-aplicado">-R$ 0,00</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-2 border-t border-slate-700 mt-2">
+                        <span class="text-slate-400">Total Final</span>
+                        <span class="text-2xl font-bold text-emerald-400" id="modal-total"></span>
                     </div>
                 </div>
             </div>
+
             <div class="p-6 border-t border-slate-800 bg-slate-800/30 space-y-2 safe-area-bottom">
+                <!-- Botão Avisar Cliente -->
+                <button onclick="avisarClienteRecebido()" id="btn-avisar" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2 hidden">
+                    <i class="fab fa-whatsapp text-xl"></i> Avisar Cliente (Pedido Recebido)
+                </button>
+                
                 <div class="grid grid-cols-3 gap-2">
-                    <button onclick="atualizarStatusPedido('recebido')" class="bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
-                        <i class="fas fa-check"></i> Recebido
+                    <button onclick="atualizarStatusPedido('recebido')" class="bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-1 text-sm">
+                        <i class="fas fa-check"></i> Receber
                     </button>
-                    <button onclick="atualizarStatusPedido('pendente')" class="bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
+                    <button onclick="atualizarStatusPedido('pendente')" class="bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-1 text-sm">
                         <i class="fas fa-clock"></i> Pendente
                     </button>
-                    <button onclick="atualizarStatusPedido('cancelado')" class="bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
+                    <button onclick="atualizarStatusPedido('cancelado')" class="bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-1 text-sm">
                         <i class="fas fa-times"></i> Cancelar
                     </button>
                 </div>
-                <button onclick="enviarWhatsApp()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
-                    <i class="fab fa-whatsapp text-xl"></i> Enviar WhatsApp
-                </button>
             </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC4g-r04tQ1PC72FpuNXJ8r7-1gTyD0CMc",
@@ -270,13 +366,25 @@
         let produtosData = [];
         let pedidoAtual = null;
         let filtroAtual = 'todos';
+        let imagemBase64 = null;
+        let totalOriginal = 0;
+
+        // Toast
+        function showToast(msg, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            toast.className = `toast ${type} ${type === 'success' ? 'border-emerald-500' : 'border-red-500'}`;
+            toast.querySelector('i').className = `fas ${type === 'success' ? 'fa-check-circle text-emerald-400' : 'fa-exclamation-circle text-red-400'}`;
+            toastMsg.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
 
         // Navegação
         window.showTab = (tab) => {
             document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
             document.getElementById(`tab-${tab}`).classList.remove('hidden');
             
-            // Atualizar navegação ativa
             document.querySelectorAll('[id^="btn-"], [id^="nav-"]').forEach(btn => {
                 btn.classList.remove('text-white', 'bg-slate-800');
                 btn.classList.add('text-slate-400');
@@ -289,27 +397,64 @@
             }
         };
 
+        // Upload de Imagem
+        window.handleImageUpload = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            if (file.size > 5 * 1024 * 1024) {
+                showToast('Imagem muito grande! Máx 5MB', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                imagemBase64 = event.target.result;
+                document.getElementById('image-preview').src = imagemBase64;
+                document.getElementById('image-preview').classList.remove('hidden');
+                document.getElementById('upload-placeholder').classList.add('hidden');
+                document.getElementById('remove-image').classList.remove('hidden');
+                document.getElementById('upload-area').classList.add('has-image');
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.removeImage = () => {
+            imagemBase64 = null;
+            document.getElementById('file-input').value = '';
+            document.getElementById('image-preview').classList.add('hidden');
+            document.getElementById('upload-placeholder').classList.remove('hidden');
+            document.getElementById('remove-image').classList.add('hidden');
+            document.getElementById('upload-area').classList.remove('has-image');
+        };
+
         // Salvar Produto
         window.salvarProduto = async () => {
             const nome = document.getElementById('p-nome').value.trim();
             const preco = Number(document.getElementById('p-preco').value);
             
             if (!nome || !preco) {
-                alert("Preencha nome e preço do produto!");
+                showToast('Preencha nome e preço!', 'error');
                 return;
             }
 
-            const data = {
-                nome: nome,
-                preco: preco,
-                desconto: Number(document.getElementById('p-desc').value) || 0,
-                destaque: document.getElementById('p-destaque').checked,
-                ativo: document.getElementById('p-ativo').checked,
-                vendas: 0,
-                dataCriacao: new Date()
-            };
+            const btn = document.getElementById('btn-salvar');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+            btn.disabled = true;
 
             try {
+                const data = {
+                    nome: nome,
+                    preco: preco,
+                    desconto: Number(document.getElementById('p-desc').value) || 0,
+                    destaque: document.getElementById('p-destaque').checked,
+                    ativo: document.getElementById('p-ativo').checked,
+                    imagem: imagemBase64,
+                    vendas: 0,
+                    dataCriacao: new Date()
+                };
+
                 await addDoc(collection(db, "produtos"), data);
                 
                 // Limpar formulário
@@ -317,26 +462,23 @@
                 document.getElementById('p-preco').value = '';
                 document.getElementById('p-desc').value = '';
                 document.getElementById('p-destaque').checked = false;
+                removeImage();
                 
-                // Feedback visual
-                const btn = event.target;
-                const originalHTML = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check"></i> Salvo!';
-                btn.classList.add('bg-emerald-600');
-                setTimeout(() => {
-                    btn.innerHTML = originalHTML;
-                    btn.classList.remove('bg-emerald-600');
-                }, 2000);
+                showToast('Produto cadastrado com sucesso!');
                 
             } catch (error) {
                 console.error("Erro:", error);
-                alert("Erro ao salvar produto");
+                showToast('Erro ao salvar: ' + error.message, 'error');
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
             }
         };
 
-        // Toggle Visibilidade Produto
+        // Toggle Visibilidade
         window.toggleVisibilidade = async (id, atual) => {
             await updateDoc(doc(db, "produtos", id), { ativo: !atual });
+            showToast(atual ? 'Produto oculto' : 'Produto visível');
         };
 
         // Carregar Produtos
@@ -353,23 +495,24 @@
                 produtosData.push(p);
                 
                 const precoFinal = p.preco - (p.desconto || 0);
+                const imgHtml = p.imagem ? 
+                    `<img src="${p.imagem}" class="w-12 h-12 rounded-lg object-cover bg-slate-800">` :
+                    `<div class="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center text-slate-600"><i class="fas fa-image"></i></div>`;
                 
                 container.innerHTML += `
-                    <div class="p-4 flex items-center justify-between hover:bg-slate-800/50 transition-colors">
+                    <div class="p-4 flex items-center gap-3 hover:bg-slate-800/50 transition-colors">
+                        ${imgHtml}
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2">
                                 <h4 class="font-medium text-white truncate">${p.nome}</h4>
                                 ${p.destaque ? '<span class="text-amber-400 text-xs"><i class="fas fa-star"></i></span>' : ''}
                             </div>
                             <p class="text-sm text-slate-400">R$ ${precoFinal.toFixed(2)} ${p.desconto > 0 ? `<span class="line-through text-slate-600">R$ ${p.preco.toFixed(2)}</span>` : ''}</p>
-                            <p class="text-xs text-slate-500 mt-1">${p.vendas || 0} vendas</p>
                         </div>
-                        <div class="flex items-center gap-3 ml-4">
-                            <button onclick="toggleVisibilidade('${res.id}', ${p.ativo !== false})" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${p.ativo !== false ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}">
-                                <i class="fas ${p.ativo !== false ? 'fa-eye' : 'fa-eye-slash'}"></i>
-                                ${p.ativo !== false ? 'Visível' : 'Oculto'}
-                            </button>
-                        </div>
+                        <button onclick="toggleVisibilidade('${res.id}', ${p.ativo !== false})" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${p.ativo !== false ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}">
+                            <i class="fas ${p.ativo !== false ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                            ${p.ativo !== false ? 'Visível' : 'Oculto'}
+                        </button>
                     </div>`;
             });
             
@@ -390,8 +533,6 @@
         // Filtros
         window.filtrarStatus = (status) => {
             filtroAtual = status;
-            
-            // Atualizar botões
             document.querySelectorAll('.filtro-btn').forEach(btn => {
                 if (btn.dataset.filter === status) {
                     btn.classList.remove('bg-slate-800', 'text-slate-400');
@@ -401,7 +542,6 @@
                     btn.classList.remove('bg-blue-600', 'text-white');
                 }
             });
-            
             aplicarFiltros();
         };
 
@@ -412,17 +552,14 @@
             
             let filtrados = pedidosData;
             
-            // Filtro status
             if (filtroAtual !== 'todos') {
                 filtrados = filtrados.filter(p => p.status === filtroAtual);
             }
             
-            // Filtro busca
             if (busca) {
                 filtrados = filtrados.filter(p => p.cliente?.toLowerCase().includes(busca));
             }
             
-            // Filtro data
             if (dataInicio) {
                 const inicio = new Date(dataInicio);
                 filtrados = filtrados.filter(p => p.data?.toDate() >= inicio);
@@ -453,9 +590,7 @@
                 const data = p.data?.toDate() || new Date();
                 const dataStr = data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
                 const statusClass = `status-${p.status || 'pendente'}`;
-                const statusIcon = p.status === 'recebido' ? 'fa-check-circle text-emerald-400' : 
-                                  p.status === 'cancelado' ? 'fa-times-circle text-red-400' : 
-                                  'fa-clock text-amber-400';
+                const totalFinal = p.totalFinal || p.total;
                 
                 return `
                     <div onclick="abrirPedido('${p.id}')" class="bg-slate-900 rounded-xl p-4 border border-slate-800 ${statusClass} cursor-pointer hover:bg-slate-800 transition-all active:scale-[0.98]">
@@ -465,13 +600,13 @@
                                 <p class="text-xs text-slate-400">${dataStr}</p>
                             </div>
                             <div class="text-right">
-                                <p class="font-bold text-emerald-400">R$ ${p.total?.toFixed(2) || '0,00'}</p>
+                                <p class="font-bold text-emerald-400">R$ ${totalFinal?.toFixed(2) || p.total?.toFixed(2) || '0,00'}</p>
                                 <span class="text-[10px] uppercase tracking-wider ${p.status === 'recebido' ? 'text-emerald-400' : p.status === 'cancelado' ? 'text-red-400' : 'text-amber-400'}">${p.status || 'pendente'}</span>
                             </div>
                         </div>
                         <div class="flex items-center justify-between mt-3">
                             <p class="text-xs text-slate-500 truncate flex-1 mr-4">${p.itens?.length || 0} itens • ${p.endereco || 'Sem endereço'}</p>
-                            <i class="fas ${statusIcon}"></i>
+                            ${p.descontoAplicado ? '<span class="text-xs text-emerald-400"><i class="fas fa-tag"></i> Desc</span>' : ''}
                         </div>
                     </div>`;
             }).join('');
@@ -482,6 +617,7 @@
             pedidoAtual = pedidosData.find(p => p.id === id);
             if (!pedidoAtual) return;
             
+            totalOriginal = pedidoAtual.total || 0;
             const data = pedidoAtual.data?.toDate() || new Date();
             
             document.getElementById('modal-id').innerText = id.slice(-6).toUpperCase();
@@ -489,7 +625,28 @@
             document.getElementById('modal-cliente').innerText = pedidoAtual.cliente;
             document.getElementById('modal-whats').innerText = pedidoAtual.whats || 'Sem WhatsApp';
             document.getElementById('modal-endereco').innerText = pedidoAtual.endereco || 'Sem endereço';
-            document.getElementById('modal-total').innerText = `R$ ${pedidoAtual.total?.toFixed(2) || '0,00'}`;
+            document.getElementById('modal-total-original').innerText = `R$ ${totalOriginal.toFixed(2)}`;
+            document.getElementById('modal-total').innerText = `R$ ${(pedidoAtual.totalFinal || totalOriginal).toFixed(2)}`;
+            
+            // Reset desconto
+            document.getElementById('aplicar-desconto').checked = false;
+            document.getElementById('input-desconto').classList.add('hidden');
+            document.getElementById('valor-desconto').value = '';
+            document.getElementById('linha-desconto-aplicado').classList.add('hidden');
+            
+            // Mostrar desconto se já existir
+            if (pedidoAtual.descontoAplicado) {
+                document.getElementById('linha-desconto-aplicado').classList.remove('hidden');
+                document.getElementById('valor-desconto-aplicado').innerText = `-R$ ${pedidoAtual.descontoAplicado.toFixed(2)}`;
+            }
+            
+            // Mostrar botão avisar apenas se pendente
+            const btnAvisar = document.getElementById('btn-avisar');
+            if (pedidoAtual.status === 'pendente' && pedidoAtual.whats) {
+                btnAvisar.classList.remove('hidden');
+            } else {
+                btnAvisar.classList.add('hidden');
+            }
             
             const itensContainer = document.getElementById('modal-itens');
             itensContainer.innerHTML = (pedidoAtual.itens || []).map(item => `
@@ -514,35 +671,84 @@
             setTimeout(() => modal.classList.add('hidden'), 300);
         };
 
+        // Toggle desconto
+        window.toggleDesconto = () => {
+            const checkbox = document.getElementById('aplicar-desconto');
+            const inputDiv = document.getElementById('input-desconto');
+            
+            if (checkbox.checked) {
+                inputDiv.classList.remove('hidden');
+                calcularTotal();
+            } else {
+                inputDiv.classList.add('hidden');
+                document.getElementById('modal-total').innerText = `R$ ${totalOriginal.toFixed(2)}`;
+            }
+        };
+
+        window.calcularTotal = () => {
+            const valor = Number(document.getElementById('valor-desconto').value) || 0;
+            const tipo = document.getElementById('tipo-desconto').value;
+            
+            let desconto = valor;
+            if (tipo === 'percent') {
+                desconto = (totalOriginal * valor) / 100;
+            }
+            
+            const novoTotal = Math.max(0, totalOriginal - desconto);
+            document.getElementById('novo-total').innerText = `R$ ${novoTotal.toFixed(2)}`;
+            document.getElementById('modal-total').innerText = `R$ ${novoTotal.toFixed(2)}`;
+        };
+
+        // Atualizar status
         window.atualizarStatusPedido = async (status) => {
             if (!pedidoAtual) return;
             
             try {
-                await updateDoc(doc(db, "pedidos", pedidoAtual.id), { status: status });
+                const updateData = { status: status };
+                
+                // Se estiver aplicando desconto ao receber
+                if (status === 'recebido' && document.getElementById('aplicar-desconto').checked) {
+                    const valor = Number(document.getElementById('valor-desconto').value) || 0;
+                    const tipo = document.getElementById('tipo-desconto').value;
+                    
+                    let descontoValor = valor;
+                    if (tipo === 'percent') {
+                        descontoValor = (totalOriginal * valor) / 100;
+                    }
+                    
+                    updateData.descontoAplicado = descontoValor;
+                    updateData.totalFinal = Math.max(0, totalOriginal - descontoValor);
+                }
+                
+                await updateDoc(doc(db, "pedidos", pedidoAtual.id), updateData);
+                
+                showToast(`Pedido ${status === 'recebido' ? 'recebido' : status === 'cancelado' ? 'cancelado' : 'atualizado'}!`);
                 fecharModal();
                 
-                // Feedback
-                const toast = document.createElement('div');
-                toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl z-50 animate-fade-in flex items-center gap-2';
-                toast.innerHTML = `<i class="fas fa-check text-emerald-400"></i> Status atualizado!`;
-                document.body.appendChild(toast);
-                setTimeout(() => toast.remove(), 2000);
-                
             } catch (error) {
-                alert("Erro ao atualizar status");
+                showToast('Erro ao atualizar: ' + error.message, 'error');
             }
         };
 
-        window.enviarWhatsApp = () => {
-            if (!pedidoAtual || !pedidoAtual.whats) return;
+        // Avisar cliente recebido
+        window.avisarClienteRecebido = () => {
+            if (!pedidoAtual || !pedidoAtual.whats) {
+                showToast('Cliente sem WhatsApp cadastrado', 'error');
+                return;
+            }
             
             const msg = `Olá ${pedidoAtual.cliente}! 👋\n\n` +
-                       `Seu pedido foi recebido! ✅\n\n` +
-                       `*Total:* R$ ${pedidoAtual.total?.toFixed(2)}\n` +
+                       `✅ *Pedido Recebido!*\n\n` +
+                       `Seu pedido foi recebido com sucesso e já está sendo preparado.\n\n` +
+                       `*Total:* R$ ${(pedidoAtual.totalFinal || pedidoAtual.total)?.toFixed(2)}\n` +
                        `*Itens:* ${pedidoAtual.itens?.length || 0}\n\n` +
                        `Obrigado por comprar na Bill Rizzo! 🚀`;
             
             window.open(`https://wa.me/55${pedidoAtual.whats.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
+            
+            // Marcar como notificado
+            updateDoc(doc(db, "pedidos", pedidoAtual.id), { clienteNotificado: true });
+            showToast('WhatsApp aberto!');
         };
 
         // Dashboard
@@ -573,9 +779,9 @@
             
             const pendentes = pedidosData.filter(p => p.status === 'pendente').length;
             
-            const totalHoje = pedidosHoje.reduce((acc, p) => acc + (p.total || 0), 0);
-            const totalSemana = pedidosSemana.reduce((acc, p) => acc + (p.total || 0), 0);
-            const totalMes = pedidosMes.reduce((acc, p) => acc + (p.total || 0), 0);
+            const totalHoje = pedidosHoje.reduce((acc, p) => acc + (p.totalFinal || p.total || 0), 0);
+            const totalSemana = pedidosSemana.reduce((acc, p) => acc + (p.totalFinal || p.total || 0), 0);
+            const totalMes = pedidosMes.reduce((acc, p) => acc + (p.totalFinal || p.total || 0), 0);
             
             document.getElementById('dash-hoje').innerText = `R$ ${totalHoje.toFixed(2)}`;
             document.getElementById('count-hoje').innerText = pedidosHoje.length;
@@ -583,7 +789,7 @@
             document.getElementById('dash-mes').innerText = `R$ ${totalMes.toFixed(2)}`;
             document.getElementById('dash-pendentes').innerText = pendentes;
             
-            // Ranking produtos
+            // Ranking
             const ranking = {};
             pedidosData.forEach(p => {
                 if (p.status === 'cancelado') return;
@@ -592,13 +798,11 @@
                 });
             });
             
-            const topProdutos = Object.entries(ranking)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 5);
+            const topProdutos = Object.entries(ranking).sort((a, b) => b[1] - a[1]).slice(0, 5);
             
             const rankingContainer = document.getElementById('ranking-produtos');
             if (topProdutos.length === 0) {
-                rankingContainer.innerHTML = '<p class="text-slate-500 text-center py-4">Sem dados suficientes</p>';
+                rankingContainer.innerHTML = '<p class="text-slate-500 text-center py-4">Sem dados</p>';
             } else {
                 rankingContainer.innerHTML = topProdutos.map(([nome, qtd], i) => `
                     <div class="flex items-center gap-3">
@@ -619,7 +823,6 @@
 
         function atualizarNotificacoes() {
             const pendentes = pedidosData.filter(p => p.status === 'pendente').length;
-            
             ['notif-badge', 'menu-notif'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
@@ -631,8 +834,6 @@
 
         // Inicializar
         showTab('dashboard');
-        
-        // Definir datas padrão
         const hoje = new Date().toISOString().split('T')[0];
         document.getElementById('filtro-data-fim').value = hoje;
     </script>
