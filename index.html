@@ -41,31 +41,16 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOutRight {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
         @keyframes popIn {
             0% { transform: scale(0.8); opacity: 0; }
             50% { transform: scale(1.1); }
             100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-5px); }
         }
         .animate-fade-in {
             animation: fadeIn 0.5s ease-out forwards;
         }
         .animate-pop {
             animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .animate-bounce-short {
-            animation: bounce 0.5s ease-in-out;
         }
         .gradient-text {
             background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
@@ -115,15 +100,20 @@
             100% { transform: scale(1); }
         }
         
-        /* Badge flutuante */
-        .item-badge {
+        /* Contador no botão de adicionar */
+        .add-btn-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        .item-counter {
             position: absolute;
             top: -8px;
             right: -8px;
             background: #10b981;
             color: white;
             border-radius: 50%;
-            width: 20px;
+            min-width: 20px;
             height: 20px;
             display: flex;
             align-items: center;
@@ -131,6 +121,8 @@
             font-size: 11px;
             font-weight: bold;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            padding: 0 4px;
+            z-index: 10;
         }
     </style>
 </head>
@@ -238,7 +230,7 @@
             <div class="space-y-2">
                 <input id="cli-nome" type="text" placeholder="Nome completo" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm transition-all">
                 <div class="grid grid-cols-2 gap-2">
-                    <input id="cli-whats" type="tel" placeholder="WhatsApp" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm transition-all">
+                    <input id="cli-whats" type="tel" placeholder="WhatsApp" maxlength="15" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm transition-all">
                     <input id="cli-end" type="text" placeholder="Endereço" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm transition-all">
                 </div>
             </div>
@@ -254,7 +246,7 @@
 
     <!-- Botão Flutuante -->
     <button onclick="toggleCarrinho()" class="fixed bottom-6 right-6 bg-slate-900 text-white p-4 rounded-full shadow-2xl shadow-slate-900/40 z-40 active:scale-90 transition-all touch-manipulation group" id="cart-btn-float">
-        <svg class="w-6 h-6 group-hover:animate-bounce-short" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
         </svg>
         <span id="cart-count-float" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center hidden shadow-md transition-transform">0</span>
@@ -277,7 +269,37 @@
         const db = getFirestore(app);
 
         let carrinho = [];
+        let produtosCache = [];
         let toastTimeout;
+
+        // Máscara de telefone
+        function setupPhoneMask() {
+            const phoneInput = document.getElementById('cli-whats');
+            
+            phoneInput.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                
+                if (value.length > 11) {
+                    value = value.slice(0, 11);
+                }
+                
+                // Aplica máscara
+                if (value.length > 7) {
+                    value = value.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+                } else if (value.length > 2) {
+                    value = value.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+                } else if (value.length > 0) {
+                    value = value.replace(/^(\d*)/, '($1');
+                }
+                
+                e.target.value = value;
+            });
+        }
+
+        // Contar itens de um produto específico no carrinho
+        function countItemInCart(productId) {
+            return carrinho.filter(item => item.id === productId).length;
+        }
 
         // Mostrar toast de adição
         function showToast(nomeProduto) {
@@ -306,45 +328,36 @@
             toast.classList.add('hide');
         };
 
-        // Carregar Produtos - apenas ativos
-        onSnapshot(query(collection(db, "produtos"), where("ativo", "!=", false)), (snapshot) => {
-            const geral = document.getElementById('lista-geral');
-            const destaques = document.getElementById('lista-destaques');
-            const secDestaque = document.getElementById('sec-destaques');
+        // Renderizar card de produto com contador
+        function renderProductCard(p, id, isDestaqueSection = false) {
+            const precoFinal = p.preco - (p.desconto || 0);
+            const temDesconto = p.desconto > 0;
+            const count = countItemInCart(id);
             
-            geral.innerHTML = ''; 
-            destaques.innerHTML = '';
-            let temDestaque = false;
-
-            snapshot.forEach(res => {
-                const p = res.data();
-                if (p.ativo === false) return; // Double check
-                
-                const id = res.id;
-                const precoFinal = p.preco - (p.desconto || 0);
-                const temDesconto = p.desconto > 0;
-                
-                // Imagem do produto ou placeholder
-                const imgHtml = p.imagem ? 
-                    `<img src="${p.imagem}" class="w-full h-full object-cover" alt="${p.nome}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">` : '';
-                
-                const cardHTML = `
-                    <div class="product-card bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm animate-fade-in">
-                        <div class="relative aspect-square bg-slate-100 overflow-hidden">
-                            ${imgHtml}
-                            <div class="w-full h-full flex items-center justify-center text-slate-300 ${p.imagem ? 'hidden' : ''}">
-                                <svg class="w-12 h-12 opacity-50" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                            </div>
-                            ${temDesconto ? `<span class="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md">-${Math.round((p.desconto/p.preco)*100)}%</span>` : ''}
-                            ${p.destaque ? `<span class="absolute top-2 right-2 bg-amber-400 text-amber-900 text-[10px] font-bold px-2 py-1 rounded-full shadow-md">★ Destaque</span>` : ''}
+            const imgHtml = p.imagem ? 
+                `<img src="${p.imagem}" class="w-full h-full object-cover" alt="${p.nome}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">` : '';
+            
+            const counterBadge = count > 0 ? `<span class="item-counter" id="counter-${id}">${count}</span>` : '';
+            
+            return `
+                <div class="product-card bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm animate-fade-in">
+                    <div class="relative aspect-square bg-slate-100 overflow-hidden">
+                        ${imgHtml}
+                        <div class="w-full h-full flex items-center justify-center text-slate-300 ${p.imagem ? 'hidden' : ''}">
+                            <svg class="w-12 h-12 opacity-50" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                         </div>
-                        <div class="p-3">
-                            <h3 class="font-semibold text-slate-900 text-sm mb-1 line-clamp-1" title="${p.nome}">${p.nome}</h3>
-                            <div class="flex items-end justify-between gap-2">
-                                <div class="flex-1 min-w-0">
-                                    <span class="text-base font-bold text-slate-900">R$ ${precoFinal.toFixed(2)}</span>
-                                    ${temDesconto ? `<span class="text-xs text-slate-400 line-through block">R$ ${p.preco.toFixed(2)}</span>` : ''}
-                                </div>
+                        ${temDesconto ? `<span class="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md">-${Math.round((p.desconto/p.preco)*100)}%</span>` : ''}
+                        ${p.destaque ? `<span class="absolute top-2 right-2 bg-amber-400 text-amber-900 text-[10px] font-bold px-2 py-1 rounded-full shadow-md">★ Destaque</span>` : ''}
+                    </div>
+                    <div class="p-3">
+                        <h3 class="font-semibold text-slate-900 text-sm mb-1 line-clamp-1" title="${p.nome}">${p.nome}</h3>
+                        <div class="flex items-end justify-between gap-2">
+                            <div class="flex-1 min-w-0">
+                                <span class="text-base font-bold text-slate-900">R$ ${precoFinal.toFixed(2)}</span>
+                                ${temDesconto ? `<span class="text-xs text-slate-400 line-through block">R$ ${p.preco.toFixed(2)}</span>` : ''}
+                            </div>
+                            <div class="add-btn-container">
+                                ${counterBadge}
                                 <button onclick="addCarrinho('${id}', '${p.nome.replace(/'/g, "\\'")}', ${precoFinal})" 
                                     class="bg-slate-900 text-white w-9 h-9 rounded-lg flex items-center justify-center active:scale-90 transition-all touch-manipulation hover:bg-slate-800 shadow-md"
                                     aria-label="Adicionar ${p.nome} ao carrinho">
@@ -354,8 +367,69 @@
                                 </button>
                             </div>
                         </div>
-                    </div>`;
+                    </div>
+                </div>`;
+        }
 
+        // Atualizar contadores nos cards
+        function updateProductCounters() {
+            produtosCache.forEach(p => {
+                const count = countItemInCart(p.id);
+                const counterEl = document.getElementById(`counter-${p.id}`);
+                
+                if (count > 0) {
+                    if (counterEl) {
+                        counterEl.innerText = count;
+                        counterEl.style.display = 'flex';
+                    } else {
+                        // Recarregar a lista se o contador não existe (primeira adição)
+                        refreshProductList();
+                    }
+                } else if (counterEl) {
+                    counterEl.style.display = 'none';
+                }
+            });
+        }
+
+        function refreshProductList() {
+            // Recarrega os produtos para mostrar/esconder contadores
+            const geral = document.getElementById('lista-geral');
+            const destaques = document.getElementById('lista-destaques');
+            
+            geral.innerHTML = '';
+            destaques.innerHTML = '';
+            
+            produtosCache.forEach(p => {
+                if (p.ativo === false) return;
+                
+                const cardHTML = renderProductCard(p, p.id, p.destaque);
+                
+                if(p.destaque) {
+                    destaques.innerHTML += cardHTML;
+                }
+                geral.innerHTML += cardHTML;
+            });
+        }
+
+        // Carregar Produtos
+        onSnapshot(query(collection(db, "produtos"), where("ativo", "!=", false)), (snapshot) => {
+            const geral = document.getElementById('lista-geral');
+            const destaques = document.getElementById('lista-destaques');
+            const secDestaque = document.getElementById('sec-destaques');
+            
+            geral.innerHTML = ''; 
+            destaques.innerHTML = '';
+            produtosCache = [];
+            let temDestaque = false;
+
+            snapshot.forEach(res => {
+                const p = { ...res.data(), id: res.id };
+                if (p.ativo === false) return;
+                
+                produtosCache.push(p);
+                
+                const cardHTML = renderProductCard(p, res.id, p.destaque);
+                
                 if(p.destaque) {
                     destaques.innerHTML += cardHTML;
                     temDestaque = true;
@@ -366,7 +440,7 @@
             secDestaque.style.display = temDestaque ? 'block' : 'none';
         });
 
-        // Mais Vendidos - apenas ativos
+        // Mais Vendidos
         onSnapshot(query(collection(db, "produtos"), where("ativo", "!=", false), orderBy("vendas", "desc"), limit(5)), (snapshot) => {
             const mv = document.getElementById('lista-mais-vendidos');
             mv.innerHTML = '';
@@ -397,17 +471,17 @@
         window.addCarrinho = (id, nome, preco) => {
             carrinho.push({id, nome, preco});
             updateCartUI();
+            updateProductCounters();
             showToast(nome);
             
-            // Feedback tátil
             if (navigator.vibrate) navigator.vibrate(40);
         };
 
         window.removeItem = (index) => {
             carrinho.splice(index, 1);
             updateCartUI();
+            updateProductCounters();
             
-            // Atualizar toast se visível
             if (document.getElementById('toast-cart').classList.contains('show')) {
                 document.getElementById('toast-cart-count').innerText = `Carrinho: ${carrinho.length} ${carrinho.length === 1 ? 'item' : 'itens'}`;
             }
@@ -438,15 +512,28 @@
                         <button onclick="toggleCarrinho()" class="mt-3 text-slate-900 font-medium text-sm hover:underline">Continuar comprando</button>
                     </div>`;
             } else {
-                itensContainer.innerHTML = carrinho.map((item, index) => `
+                // Agrupar itens iguais
+                const grouped = {};
+                carrinho.forEach((item, idx) => {
+                    if (!grouped[item.id]) {
+                        grouped[item.id] = { ...item, indices: [], quantidade: 0 };
+                    }
+                    grouped[item.id].indices.push(idx);
+                    grouped[item.id].quantidade++;
+                });
+                
+                itensContainer.innerHTML = Object.values(grouped).map((item, index) => `
                     <div class="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-xl animate-pop" style="animation-delay: ${index * 50}ms">
                         <div class="flex-1 min-w-0 mr-3">
-                            <p class="font-medium text-slate-900 text-sm truncate">${item.nome}</p>
-                            <p class="text-slate-500 text-sm">R$ ${item.preco.toFixed(2)}</p>
+                            <div class="flex items-center gap-2">
+                                <p class="font-medium text-slate-900 text-sm truncate">${item.nome}</p>
+                                <span class="bg-slate-200 text-slate-700 text-xs px-2 py-0.5 rounded-full">x${item.quantidade}</span>
+                            </div>
+                            <p class="text-slate-500 text-sm">R$ ${item.preco.toFixed(2)} cada</p>
                         </div>
-                        <button onclick="removeItem(${index})" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors touch-manipulation" aria-label="Remover item">
+                        <button onclick="removeOneItem('${item.id}')" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors touch-manipulation" aria-label="Remover uma unidade">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path>
                             </svg>
                         </button>
                     </div>
@@ -456,6 +543,16 @@
             const total = carrinho.reduce((acc, i) => acc + i.preco, 0);
             totalElement.innerText = `R$ ${total.toFixed(2)}`;
         }
+
+        // Remover uma unidade do item
+        window.removeOneItem = (productId) => {
+            const index = carrinho.findIndex(item => item.id === productId);
+            if (index > -1) {
+                carrinho.splice(index, 1);
+                updateCartUI();
+                updateProductCounters();
+            }
+        };
 
         window.toggleCarrinho = () => {
             const modal = document.getElementById('carrinho-modal');
@@ -506,17 +603,15 @@
                     updateDoc(doc(db, "produtos", item.id), { vendas: increment(1) })
                 ));
 
-                // Sucesso
                 carrinho = [];
                 updateCartUI();
+                updateProductCounters();
                 toggleCarrinho();
                 
-                // Limpar formulário
                 document.getElementById('cli-nome').value = '';
                 document.getElementById('cli-whats').value = '';
                 document.getElementById('cli-end').value = '';
                 
-                // Mostrar confirmação
                 setTimeout(() => {
                     alert(`Pedido enviado com sucesso!\n\nObrigado, ${nome}!\nEm breve entraremos em contato.`);
                 }, 300);
@@ -529,6 +624,9 @@
                 btn.disabled = false;
             }
         };
+
+        // Inicializar máscara de telefone
+        setupPhoneMask();
     </script>
 </body>
 </html>
