@@ -2,99 +2,639 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Administrativo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <title>Bill Rizzo | Painel Administrativo</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+        .status-pendente { border-left: 4px solid #f59e0b; }
+        .status-recebido { border-left: 4px solid #10b981; }
+        .status-cancelado { border-left: 4px solid #ef4444; }
+        .toggle-checkbox:checked { right: 0; border-color: #10b981; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #10b981; }
+        input, select, button { font-size: 16px; }
+        .safe-area-top { padding-top: env(safe-area-inset-top); }
+        .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+    </style>
 </head>
-<body class="bg-gray-800 text-white min-h-screen">
+<body class="bg-slate-950 text-slate-100 min-h-screen">
 
-    <div class="max-w-4xl mx-auto p-6">
-        <header class="flex justify-between items-center mb-10 border-b border-gray-700 pb-4">
-            <h1 class="text-2xl font-bold">Admin Panel 📦</h1>
-            <div class="relative">
-                🔔 <span id="notif-count" class="bg-red-600 text-xs px-2 py-1 rounded-full absolute -top-2 -right-2">0</span>
-            </div>
-        </header>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <section class="bg-gray-900 p-6 rounded-xl">
-                <h2 class="text-xl font-bold mb-4">Novo Produto</h2>
-                <div class="space-y-3">
-                    <input id="p-nome" type="text" placeholder="Nome do Produto" class="w-full bg-gray-700 p-2 rounded">
-                    <input id="p-preco" type="number" placeholder="Preço" class="w-full bg-gray-700 p-2 rounded">
-                    <input id="p-desc" type="number" placeholder="Desconto (R$)" class="w-full bg-gray-700 p-2 rounded">
-                    <label class="flex items-center gap-2">
-                        <input id="p-destaque" type="checkbox"> Ativar Destaque
-                    </label>
-                    <button onclick="salvarProduto()" class="w-full bg-blue-600 p-2 rounded font-bold hover:bg-blue-700">CADASTRAR</button>
+    <!-- Header Mobile -->
+    <header class="fixed top-0 w-full bg-slate-900/95 backdrop-blur-md border-b border-slate-800 z-40 safe-area-top">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <i class="fas fa-crown text-white text-lg"></i>
                 </div>
-            </section>
+                <div>
+                    <h1 class="text-lg font-bold text-white">Bill Rizzo</h1>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-wider">Painel Administrativo</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button onclick="showTab('dashboard')" class="p-2 text-slate-400 hover:text-white transition-colors md:hidden" id="nav-dashboard">
+                    <i class="fas fa-chart-line text-xl"></i>
+                </button>
+                <button onclick="showTab('produtos')" class="p-2 text-slate-400 hover:text-white transition-colors md:hidden" id="nav-produtos">
+                    <i class="fas fa-box text-xl"></i>
+                </button>
+                <button onclick="showTab('pedidos')" class="p-2 text-slate-400 hover:text-white transition-colors relative" id="nav-pedidos">
+                    <i class="fas fa-shopping-bag text-xl"></i>
+                    <span id="notif-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
 
-            <section class="bg-gray-900 p-6 rounded-xl">
-                <h2 class="text-xl font-bold mb-4 italic text-orange-400">Pedidos Recebidos (<span id="total-pedidos">0</span>)</h2>
-                <div id="lista-pedidos" class="space-y-4 max-h-[500px] overflow-y-auto"></div>
-            </section>
+    <!-- Navegação Desktop -->
+    <nav class="hidden md:block fixed left-0 top-0 h-full w-64 bg-slate-900 border-r border-slate-800 z-50 pt-6">
+        <div class="px-6 mb-8">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <i class="fas fa-crown text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-white">Bill Rizzo</h1>
+                    <p class="text-xs text-slate-400">Admin Panel</p>
+                </div>
+            </div>
+        </div>
+        <div class="space-y-1 px-3">
+            <button onclick="showTab('dashboard')" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all hover:bg-slate-800 text-slate-300 hover:text-white" id="btn-dashboard">
+                <i class="fas fa-chart-line w-5"></i> Dashboard
+            </button>
+            <button onclick="showTab('produtos')" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all hover:bg-slate-800 text-slate-300 hover:text-white" id="btn-produtos">
+                <i class="fas fa-box w-5"></i> Produtos
+            </button>
+            <button onclick="showTab('pedidos')" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all hover:bg-slate-800 text-slate-300 hover:text-white" id="btn-pedidos">
+                <i class="fas fa-shopping-bag w-5"></i> Pedidos
+                <span id="menu-notif" class="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full hidden">0</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <main class="md:ml-64 pt-20 pb-24 px-4 max-w-6xl mx-auto">
+
+        <!-- Dashboard -->
+        <section id="tab-dashboard" class="animate-fade-in space-y-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-slate-400 text-sm">Hoje</span>
+                        <i class="fas fa-calendar-day text-blue-400"></i>
+                    </div>
+                    <p class="text-2xl font-bold text-white" id="dash-hoje">R$ 0,00</p>
+                    <p class="text-xs text-slate-500 mt-1"><span id="count-hoje">0</span> pedidos</p>
+                </div>
+                <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-slate-400 text-sm">Semana</span>
+                        <i class="fas fa-calendar-week text-purple-400"></i>
+                    </div>
+                    <p class="text-2xl font-bold text-white" id="dash-semana">R$ 0,00</p>
+                    <p class="text-xs text-slate-500 mt-1">Últimos 7 dias</p>
+                </div>
+                <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-slate-400 text-sm">Mês</span>
+                        <i class="fas fa-calendar-alt text-emerald-400"></i>
+                    </div>
+                    <p class="text-2xl font-bold text-white" id="dash-mes">R$ 0,00</p>
+                    <p class="text-xs text-slate-500 mt-1">Este mês</p>
+                </div>
+                <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-slate-400 text-sm">Pendentes</span>
+                        <i class="fas fa-clock text-amber-400"></i>
+                    </div>
+                    <p class="text-2xl font-bold text-white" id="dash-pendentes">0</p>
+                    <p class="text-xs text-slate-500 mt-1">Aguardando</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6">
+                <h3 class="text-lg font-bold mb-4">Produtos Mais Vendidos</h3>
+                <div id="ranking-produtos" class="space-y-3">
+                    <p class="text-slate-500 text-center py-8">Carregando dados...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Produtos -->
+        <section id="tab-produtos" class="hidden animate-fade-in space-y-6">
+            <!-- Form Novo Produto -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-6">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                    <i class="fas fa-plus-circle text-blue-400"></i> Novo Produto
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input id="p-nome" type="text" placeholder="Nome do Produto" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors">
+                    <div class="grid grid-cols-2 gap-3">
+                        <input id="p-preco" type="number" step="0.01" placeholder="Preço (R$)" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
+                        <input id="p-desc" type="number" step="0.01" placeholder="Desconto (R$)" class="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input id="p-destaque" type="checkbox" class="w-5 h-5 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500">
+                            <span class="text-sm text-slate-300">Destaque</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input id="p-ativo" type="checkbox" checked class="w-5 h-5 rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500">
+                            <span class="text-sm text-slate-300">Visível</span>
+                        </label>
+                    </div>
+                    <button onclick="salvarProduto()" class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fas fa-save"></i> Cadastrar Produto
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista de Produtos -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+                <div class="p-4 border-b border-slate-800 flex justify-between items-center">
+                    <h3 class="font-bold">Produtos Cadastrados</h3>
+                    <span id="total-produtos" class="text-sm text-slate-400">0 itens</span>
+                </div>
+                <div id="lista-produtos-admin" class="divide-y divide-slate-800 max-h-[500px] overflow-y-auto custom-scrollbar">
+                    <p class="text-slate-500 text-center py-8">Carregando produtos...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pedidos -->
+        <section id="tab-pedidos" class="hidden animate-fade-in space-y-4">
+            <!-- Filtros -->
+            <div class="bg-slate-900 rounded-2xl border border-slate-800 p-4 space-y-3">
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="filtrarStatus('todos')" class="filtro-btn active px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white transition-all" data-filter="todos">Todos</button>
+                    <button onclick="filtrarStatus('pendente')" class="filtro-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-slate-400 hover:bg-slate-700 transition-all" data-filter="pendente">Pendentes</button>
+                    <button onclick="filtrarStatus('recebido')" class="filtro-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-slate-400 hover:bg-slate-700 transition-all" data-filter="recebido">Recebidos</button>
+                    <button onclick="filtrarStatus('cancelado')" class="filtro-btn px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-slate-400 hover:bg-slate-700 transition-all" data-filter="cancelado">Cancelados</button>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="date" id="filtro-data-inicio" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white" onchange="aplicarFiltros()">
+                    <input type="date" id="filtro-data-fim" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white" onchange="aplicarFiltros()">
+                </div>
+                <input type="text" id="filtro-busca" placeholder="Buscar por cliente..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-500" oninput="aplicarFiltros()">
+            </div>
+
+            <!-- Lista Pedidos -->
+            <div id="lista-pedidos" class="space-y-3 pb-20">
+                <p class="text-slate-500 text-center py-12">Carregando pedidos...</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal Detalhes Pedido -->
+    <div id="modal-pedido" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300 flex items-end md:items-center justify-center p-4">
+        <div class="bg-slate-900 w-full max-w-md rounded-3xl border border-slate-700 transform translate-y-full md:translate-y-0 transition-transform duration-300 max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                <div>
+                    <h3 class="text-xl font-bold text-white">Pedido #<span id="modal-id"></span></h3>
+                    <p class="text-sm text-slate-400" id="modal-data"></p>
+                </div>
+                <button onclick="fecharModal()" class="p-2 hover:bg-slate-700 rounded-full transition-colors">
+                    <i class="fas fa-times text-slate-400"></i>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1 space-y-4">
+                <div>
+                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Cliente</p>
+                    <p class="text-lg font-semibold text-white" id="modal-cliente"></p>
+                    <p class="text-sm text-slate-400" id="modal-whats"></p>
+                </div>
+                <div>
+                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Endereço</p>
+                    <p class="text-sm text-slate-300" id="modal-endereco"></p>
+                </div>
+                <div class="bg-slate-800/50 rounded-xl p-4 space-y-2">
+                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Itens</p>
+                    <div id="modal-itens" class="space-y-2"></div>
+                    <div class="border-t border-slate-700 pt-2 mt-2 flex justify-between items-center">
+                        <span class="text-slate-400">Total</span>
+                        <span class="text-xl font-bold text-emerald-400" id="modal-total"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 border-t border-slate-800 bg-slate-800/30 space-y-2 safe-area-bottom">
+                <div class="grid grid-cols-3 gap-2">
+                    <button onclick="atualizarStatusPedido('recebido')" class="bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-check"></i> Recebido
+                    </button>
+                    <button onclick="atualizarStatusPedido('pendente')" class="bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-clock"></i> Pendente
+                    </button>
+                    <button onclick="atualizarStatusPedido('cancelado')" class="bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                </div>
+                <button onclick="enviarWhatsApp()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
+                    <i class="fab fa-whatsapp text-xl"></i> Enviar WhatsApp
+                </button>
+            </div>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        const firebaseConfig = { /* COLE AQUI */ };
+        const firebaseConfig = {
+            apiKey: "AIzaSyC4g-r04tQ1PC72FpuNXJ8r7-1gTyD0CMc",
+            authDomain: "rizzo-322b9.firebaseapp.com",
+            projectId: "rizzo-322b9",
+            storageBucket: "rizzo-322b9.firebasestorage.app",
+            messagingSenderId: "333072750494",
+            appId: "1:333072750494:web:e4638196d8bc9c5004288f"
+        };
+        
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        window.salvarProduto = async () => {
-            const data = {
-                nome: document.getElementById('p-nome').value,
-                preco: Number(document.getElementById('p-preco').value),
-                desconto: Number(document.getElementById('p-desc').value),
-                destaque: document.getElementById('p-destaque').checked,
-                vendas: 0
-            };
-            await addDoc(collection(db, "produtos"), data);
-            alert("Produto cadastrado!");
+        let pedidosData = [];
+        let produtosData = [];
+        let pedidoAtual = null;
+        let filtroAtual = 'todos';
+
+        // Navegação
+        window.showTab = (tab) => {
+            document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            
+            // Atualizar navegação ativa
+            document.querySelectorAll('[id^="btn-"], [id^="nav-"]').forEach(btn => {
+                btn.classList.remove('text-white', 'bg-slate-800');
+                btn.classList.add('text-slate-400');
+            });
+            
+            const activeBtn = document.getElementById(`btn-${tab}`) || document.getElementById(`nav-${tab}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-slate-400');
+                activeBtn.classList.add('text-white');
+            }
         };
 
-        // Escutar Pedidos
-        onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snapshot) => {
-            const container = document.getElementById('lista-pedidos');
-            const totalEletro = document.getElementById('total-pedidos');
-            const notif = document.getElementById('notif-count');
+        // Salvar Produto
+        window.salvarProduto = async () => {
+            const nome = document.getElementById('p-nome').value.trim();
+            const preco = Number(document.getElementById('p-preco').value);
+            
+            if (!nome || !preco) {
+                alert("Preencha nome e preço do produto!");
+                return;
+            }
+
+            const data = {
+                nome: nome,
+                preco: preco,
+                desconto: Number(document.getElementById('p-desc').value) || 0,
+                destaque: document.getElementById('p-destaque').checked,
+                ativo: document.getElementById('p-ativo').checked,
+                vendas: 0,
+                dataCriacao: new Date()
+            };
+
+            try {
+                await addDoc(collection(db, "produtos"), data);
+                
+                // Limpar formulário
+                document.getElementById('p-nome').value = '';
+                document.getElementById('p-preco').value = '';
+                document.getElementById('p-desc').value = '';
+                document.getElementById('p-destaque').checked = false;
+                
+                // Feedback visual
+                const btn = event.target;
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Salvo!';
+                btn.classList.add('bg-emerald-600');
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('bg-emerald-600');
+                }, 2000);
+                
+            } catch (error) {
+                console.error("Erro:", error);
+                alert("Erro ao salvar produto");
+            }
+        };
+
+        // Toggle Visibilidade Produto
+        window.toggleVisibilidade = async (id, atual) => {
+            await updateDoc(doc(db, "produtos", id), { ativo: !atual });
+        };
+
+        // Carregar Produtos
+        onSnapshot(query(collection(db, "produtos"), orderBy("dataCriacao", "desc")), (snapshot) => {
+            const container = document.getElementById('lista-produtos-admin');
+            const totalEl = document.getElementById('total-produtos');
+            produtosData = [];
             
             container.innerHTML = '';
-            let pendentes = 0;
+            totalEl.innerText = `${snapshot.size} itens`;
 
             snapshot.forEach(res => {
-                const p = res.data();
-                if(p.status === "pendente") pendentes++;
-
+                const p = { id: res.id, ...res.data() };
+                produtosData.push(p);
+                
+                const precoFinal = p.preco - (p.desconto || 0);
+                
                 container.innerHTML += `
-                    <div class="bg-gray-800 p-4 rounded-lg border-l-4 ${p.status === 'pendente' ? 'border-orange-500' : 'border-green-500'}">
-                        <p class="font-bold">${p.cliente} - R$ ${p.total.toFixed(2)}</p>
-                        <p class="text-xs text-gray-400">${p.endereco}</p>
-                        <div class="flex gap-2 mt-3">
-                            <button onclick="confirmar('${res.id}')" class="text-xs bg-green-700 px-2 py-1 rounded">Recebido</button>
-                            <button onclick="avisar('${p.whats}', '${p.cliente}')" class="text-xs bg-emerald-600 px-2 py-1 rounded">Zap</button>
-                            <button onclick="recibo('${p.cliente}', ${p.total})" class="text-xs bg-gray-600 px-2 py-1 rounded">Recibo</button>
+                    <div class="p-4 flex items-center justify-between hover:bg-slate-800/50 transition-colors">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <h4 class="font-medium text-white truncate">${p.nome}</h4>
+                                ${p.destaque ? '<span class="text-amber-400 text-xs"><i class="fas fa-star"></i></span>' : ''}
+                            </div>
+                            <p class="text-sm text-slate-400">R$ ${precoFinal.toFixed(2)} ${p.desconto > 0 ? `<span class="line-through text-slate-600">R$ ${p.preco.toFixed(2)}</span>` : ''}</p>
+                            <p class="text-xs text-slate-500 mt-1">${p.vendas || 0} vendas</p>
+                        </div>
+                        <div class="flex items-center gap-3 ml-4">
+                            <button onclick="toggleVisibilidade('${res.id}', ${p.ativo !== false})" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${p.ativo !== false ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}">
+                                <i class="fas ${p.ativo !== false ? 'fa-eye' : 'fa-eye-slash'}"></i>
+                                ${p.ativo !== false ? 'Visível' : 'Oculto'}
+                            </button>
                         </div>
                     </div>`;
             });
-            totalEletro.innerText = snapshot.size;
-            notif.innerText = pendentes;
+            
+            atualizarDashboard();
         });
 
-        window.confirmar = async (id) => { await updateDoc(doc(db, "pedidos", id), { status: "recebido" }); };
-        
-        window.avisar = (whats, nome) => {
-            const msg = `Olá ${nome}! Seu pedido já foi recebido por nossa equipe. 🍕`;
-            window.open(`https://wa.me/55${whats.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`);
+        // Carregar Pedidos
+        onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snapshot) => {
+            pedidosData = [];
+            snapshot.forEach(res => {
+                pedidosData.push({ id: res.id, ...res.data() });
+            });
+            
+            aplicarFiltros();
+            atualizarDashboard();
+        });
+
+        // Filtros
+        window.filtrarStatus = (status) => {
+            filtroAtual = status;
+            
+            // Atualizar botões
+            document.querySelectorAll('.filtro-btn').forEach(btn => {
+                if (btn.dataset.filter === status) {
+                    btn.classList.remove('bg-slate-800', 'text-slate-400');
+                    btn.classList.add('bg-blue-600', 'text-white');
+                } else {
+                    btn.classList.add('bg-slate-800', 'text-slate-400');
+                    btn.classList.remove('bg-blue-600', 'text-white');
+                }
+            });
+            
+            aplicarFiltros();
         };
 
-        window.recibo = (nome, total) => {
-            alert(`--- RECIBO ---\nCliente: ${nome}\nTotal: R$ ${total.toFixed(2)}\nStatus: Recebido`);
+        window.aplicarFiltros = () => {
+            const busca = document.getElementById('filtro-busca').value.toLowerCase();
+            const dataInicio = document.getElementById('filtro-data-inicio').value;
+            const dataFim = document.getElementById('filtro-data-fim').value;
+            
+            let filtrados = pedidosData;
+            
+            // Filtro status
+            if (filtroAtual !== 'todos') {
+                filtrados = filtrados.filter(p => p.status === filtroAtual);
+            }
+            
+            // Filtro busca
+            if (busca) {
+                filtrados = filtrados.filter(p => p.cliente?.toLowerCase().includes(busca));
+            }
+            
+            // Filtro data
+            if (dataInicio) {
+                const inicio = new Date(dataInicio);
+                filtrados = filtrados.filter(p => p.data?.toDate() >= inicio);
+            }
+            if (dataFim) {
+                const fim = new Date(dataFim);
+                fim.setHours(23, 59, 59);
+                filtrados = filtrados.filter(p => p.data?.toDate() <= fim);
+            }
+            
+            renderizarPedidos(filtrados);
+            atualizarNotificacoes();
         };
+
+        function renderizarPedidos(pedidos) {
+            const container = document.getElementById('lista-pedidos');
+            
+            if (pedidos.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-500">
+                        <i class="fas fa-inbox text-4xl mb-3 opacity-30"></i>
+                        <p>Nenhum pedido encontrado</p>
+                    </div>`;
+                return;
+            }
+            
+            container.innerHTML = pedidos.map(p => {
+                const data = p.data?.toDate() || new Date();
+                const dataStr = data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+                const statusClass = `status-${p.status || 'pendente'}`;
+                const statusIcon = p.status === 'recebido' ? 'fa-check-circle text-emerald-400' : 
+                                  p.status === 'cancelado' ? 'fa-times-circle text-red-400' : 
+                                  'fa-clock text-amber-400';
+                
+                return `
+                    <div onclick="abrirPedido('${p.id}')" class="bg-slate-900 rounded-xl p-4 border border-slate-800 ${statusClass} cursor-pointer hover:bg-slate-800 transition-all active:scale-[0.98]">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h4 class="font-semibold text-white">${p.cliente}</h4>
+                                <p class="text-xs text-slate-400">${dataStr}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-emerald-400">R$ ${p.total?.toFixed(2) || '0,00'}</p>
+                                <span class="text-[10px] uppercase tracking-wider ${p.status === 'recebido' ? 'text-emerald-400' : p.status === 'cancelado' ? 'text-red-400' : 'text-amber-400'}">${p.status || 'pendente'}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between mt-3">
+                            <p class="text-xs text-slate-500 truncate flex-1 mr-4">${p.itens?.length || 0} itens • ${p.endereco || 'Sem endereço'}</p>
+                            <i class="fas ${statusIcon}"></i>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+
+        // Modal Pedido
+        window.abrirPedido = (id) => {
+            pedidoAtual = pedidosData.find(p => p.id === id);
+            if (!pedidoAtual) return;
+            
+            const data = pedidoAtual.data?.toDate() || new Date();
+            
+            document.getElementById('modal-id').innerText = id.slice(-6).toUpperCase();
+            document.getElementById('modal-data').innerText = data.toLocaleString('pt-BR');
+            document.getElementById('modal-cliente').innerText = pedidoAtual.cliente;
+            document.getElementById('modal-whats').innerText = pedidoAtual.whats || 'Sem WhatsApp';
+            document.getElementById('modal-endereco').innerText = pedidoAtual.endereco || 'Sem endereço';
+            document.getElementById('modal-total').innerText = `R$ ${pedidoAtual.total?.toFixed(2) || '0,00'}`;
+            
+            const itensContainer = document.getElementById('modal-itens');
+            itensContainer.innerHTML = (pedidoAtual.itens || []).map(item => `
+                <div class="flex justify-between text-sm">
+                    <span class="text-slate-300">• ${item.nome}</span>
+                    <span class="text-slate-400">R$ ${item.preco?.toFixed(2)}</span>
+                </div>
+            `).join('');
+            
+            const modal = document.getElementById('modal-pedido');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('div').classList.remove('translate-y-full');
+            }, 10);
+        };
+
+        window.fecharModal = () => {
+            const modal = document.getElementById('modal-pedido');
+            modal.classList.add('opacity-0');
+            modal.querySelector('div').classList.add('translate-y-full');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        };
+
+        window.atualizarStatusPedido = async (status) => {
+            if (!pedidoAtual) return;
+            
+            try {
+                await updateDoc(doc(db, "pedidos", pedidoAtual.id), { status: status });
+                fecharModal();
+                
+                // Feedback
+                const toast = document.createElement('div');
+                toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-3 rounded-full shadow-2xl z-50 animate-fade-in flex items-center gap-2';
+                toast.innerHTML = `<i class="fas fa-check text-emerald-400"></i> Status atualizado!`;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2000);
+                
+            } catch (error) {
+                alert("Erro ao atualizar status");
+            }
+        };
+
+        window.enviarWhatsApp = () => {
+            if (!pedidoAtual || !pedidoAtual.whats) return;
+            
+            const msg = `Olá ${pedidoAtual.cliente}! 👋\n\n` +
+                       `Seu pedido foi recebido! ✅\n\n` +
+                       `*Total:* R$ ${pedidoAtual.total?.toFixed(2)}\n` +
+                       `*Itens:* ${pedidoAtual.itens?.length || 0}\n\n` +
+                       `Obrigado por comprar na Bill Rizzo! 🚀`;
+            
+            window.open(`https://wa.me/55${pedidoAtual.whats.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
+        };
+
+        // Dashboard
+        function atualizarDashboard() {
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+            
+            const semanaAtras = new Date(hoje);
+            semanaAtras.setDate(semanaAtras.getDate() - 7);
+            
+            const mesAtras = new Date(hoje);
+            mesAtras.setDate(1);
+            
+            const pedidosHoje = pedidosData.filter(p => {
+                const data = p.data?.toDate();
+                return data >= hoje && p.status !== 'cancelado';
+            });
+            
+            const pedidosSemana = pedidosData.filter(p => {
+                const data = p.data?.toDate();
+                return data >= semanaAtras && p.status !== 'cancelado';
+            });
+            
+            const pedidosMes = pedidosData.filter(p => {
+                const data = p.data?.toDate();
+                return data >= mesAtras && p.status !== 'cancelado';
+            });
+            
+            const pendentes = pedidosData.filter(p => p.status === 'pendente').length;
+            
+            const totalHoje = pedidosHoje.reduce((acc, p) => acc + (p.total || 0), 0);
+            const totalSemana = pedidosSemana.reduce((acc, p) => acc + (p.total || 0), 0);
+            const totalMes = pedidosMes.reduce((acc, p) => acc + (p.total || 0), 0);
+            
+            document.getElementById('dash-hoje').innerText = `R$ ${totalHoje.toFixed(2)}`;
+            document.getElementById('count-hoje').innerText = pedidosHoje.length;
+            document.getElementById('dash-semana').innerText = `R$ ${totalSemana.toFixed(2)}`;
+            document.getElementById('dash-mes').innerText = `R$ ${totalMes.toFixed(2)}`;
+            document.getElementById('dash-pendentes').innerText = pendentes;
+            
+            // Ranking produtos
+            const ranking = {};
+            pedidosData.forEach(p => {
+                if (p.status === 'cancelado') return;
+                (p.itens || []).forEach(item => {
+                    ranking[item.nome] = (ranking[item.nome] || 0) + 1;
+                });
+            });
+            
+            const topProdutos = Object.entries(ranking)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+            
+            const rankingContainer = document.getElementById('ranking-produtos');
+            if (topProdutos.length === 0) {
+                rankingContainer.innerHTML = '<p class="text-slate-500 text-center py-4">Sem dados suficientes</p>';
+            } else {
+                rankingContainer.innerHTML = topProdutos.map(([nome, qtd], i) => `
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl font-bold text-slate-700 w-8">${i + 1}</span>
+                        <div class="flex-1">
+                            <div class="flex justify-between mb-1">
+                                <span class="text-sm text-slate-300">${nome}</span>
+                                <span class="text-sm text-slate-400">${qtd} vendas</span>
+                            </div>
+                            <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" style="width: ${(qtd / topProdutos[0][1]) * 100}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function atualizarNotificacoes() {
+            const pendentes = pedidosData.filter(p => p.status === 'pendente').length;
+            
+            ['notif-badge', 'menu-notif'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.innerText = pendentes;
+                    el.classList.toggle('hidden', pendentes === 0);
+                }
+            });
+        }
+
+        // Inicializar
+        showTab('dashboard');
+        
+        // Definir datas padrão
+        const hoje = new Date().toISOString().split('T')[0];
+        document.getElementById('filtro-data-fim').value = hoje;
     </script>
 </body>
 </html>
