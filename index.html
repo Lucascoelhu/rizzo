@@ -23,7 +23,7 @@
             scrollbar-width: none;
         }
         .glass-effect {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
         }
@@ -31,7 +31,7 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .product-card:active {
-            transform: scale(0.98);
+            transform: scale(0.96);
         }
         @keyframes slideUp {
             from { transform: translateY(100%); }
@@ -41,34 +41,119 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
         .animate-fade-in {
             animation: fadeIn 0.5s ease-out forwards;
+        }
+        .animate-pop {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .animate-bounce-short {
+            animation: bounce 0.5s ease-in-out;
         }
         .gradient-text {
             background: linear-gradient(135deg, #0f172a 0%, #334155 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .shimmer {
-            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-            background-size: 200% 100%;
-            animation: shimmer 1.5s infinite;
-        }
-        @keyframes shimmer {
-            0% { background-position: -200% 0; }
-            100% { background-position: 200% 0; }
-        }
         .touch-manipulation {
             touch-action: manipulation;
         }
         input, button {
-            font-size: 16px; /* Prevents zoom on iOS */
+            font-size: 16px;
+        }
+        
+        /* Toast Notification */
+        .toast-cart {
+            position: fixed;
+            top: 80px;
+            right: 16px;
+            background: white;
+            border-radius: 16px;
+            padding: 12px 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 60;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 280px;
+            max-width: 90vw;
+            border: 1px solid #e2e8f0;
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .toast-cart.show {
+            transform: translateX(0);
+        }
+        .toast-cart.hide {
+            transform: translateX(120%);
+        }
+        
+        /* Contador animado */
+        .cart-pulse {
+            animation: cartPulse 0.3s ease-out;
+        }
+        @keyframes cartPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+        
+        /* Badge flutuante */
+        .item-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #10b981;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased pb-24">
 
-    <!-- Header Fixo -->
+    <!-- Toast de Adição ao Carrinho -->
+    <div id="toast-cart" class="toast-cart">
+        <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+        </div>
+        <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-slate-900">Adicionado!</p>
+            <p class="text-xs text-slate-500 truncate" id="toast-item-name">Nome do produto</p>
+            <p class="text-xs text-emerald-600 font-medium mt-0.5" id="toast-cart-count">Carrinho: 1 item</p>
+        </div>
+        <button onclick="toggleCarrinho(); hideToast();" class="px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 transition-colors">
+            Ver
+        </button>
+    </div>
+
+    <!-- Header -->
     <header class="glass-effect fixed top-0 w-full z-40 border-b border-slate-200/50 safe-area-top">
         <div class="max-w-lg mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -78,16 +163,16 @@
                     <p class="text-[10px] text-slate-500 uppercase tracking-widest">Loja Oficial</p>
                 </div>
             </div>
-            <button onclick="toggleCarrinho()" class="relative p-2 -mr-2 touch-manipulation">
+            <button onclick="toggleCarrinho()" class="relative p-2 -mr-2 touch-manipulation" id="cart-btn-header">
                 <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
                 </svg>
-                <span id="cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center hidden shadow-md">0</span>
+                <span id="cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center hidden shadow-md transition-transform">0</span>
             </button>
         </div>
     </header>
 
-    <!-- Hero Compacto -->
+    <!-- Hero -->
     <div class="pt-16 bg-gradient-to-b from-slate-100 to-slate-50">
         <div class="max-w-lg mx-auto px-4 py-6 text-center">
             <h2 class="text-2xl font-bold text-slate-900 mb-2 brand-font">Coleção Exclusiva</h2>
@@ -124,30 +209,26 @@
 
     </main>
 
-    <!-- Modal do Carrinho -->
+    <!-- Modal Carrinho -->
     <div id="carrinho-overlay" onclick="toggleCarrinho()" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300"></div>
     
     <div id="carrinho-modal" class="fixed bottom-0 left-0 right-0 bg-white z-50 transform translate-y-full transition-transform duration-300 ease-out rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col">
-        <!-- Handle -->
         <div class="w-12 h-1 bg-slate-300 rounded-full mx-auto mt-3 mb-2"></div>
         
-        <!-- Header -->
         <div class="px-5 py-3 border-b border-slate-100 flex justify-between items-center">
             <div>
                 <h3 class="text-lg font-bold text-slate-900 brand-font">Seu Carrinho</h3>
                 <p class="text-xs text-slate-500" id="cart-subtitle">0 itens</p>
             </div>
-            <button onclick="toggleCarrinho()" class="p-2 -mr-2 text-slate-400">
+            <button onclick="toggleCarrinho()" class="p-2 -mr-2 text-slate-400 hover:text-slate-600 transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
             </button>
         </div>
 
-        <!-- Lista -->
         <div id="itens-carrinho" class="flex-1 overflow-y-auto px-5 py-3 space-y-2"></div>
 
-        <!-- Total e Form -->
         <div class="px-5 pb-8 pt-3 bg-slate-50 border-t border-slate-100 space-y-3 safe-area-bottom">
             <div class="flex justify-between items-center mb-2">
                 <span class="text-sm text-slate-600">Total</span>
@@ -155,30 +236,33 @@
             </div>
             
             <div class="space-y-2">
-                <input id="cli-nome" type="text" placeholder="Nome completo" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm">
+                <input id="cli-nome" type="text" placeholder="Nome completo" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm transition-all">
                 <div class="grid grid-cols-2 gap-2">
-                    <input id="cli-whats" type="tel" placeholder="WhatsApp" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
-                    <input id="cli-end" type="text" placeholder="Endereço" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm">
+                    <input id="cli-whats" type="tel" placeholder="WhatsApp" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm transition-all">
+                    <input id="cli-end" type="text" placeholder="Endereço" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm transition-all">
                 </div>
             </div>
 
-            <button onclick="finalizarPedido()" class="w-full bg-slate-900 text-white font-semibold py-3.5 rounded-xl active:scale-95 transition-transform shadow-lg shadow-slate-900/20 text-sm">
-                Finalizar Compra
+            <button onclick="finalizarPedido()" id="btn-finalizar" class="w-full bg-slate-900 text-white font-semibold py-3.5 rounded-xl active:scale-95 transition-all shadow-lg shadow-slate-900/20 text-sm flex items-center justify-center gap-2">
+                <span>Finalizar Compra</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                </svg>
             </button>
         </div>
     </div>
 
     <!-- Botão Flutuante -->
-    <button onclick="toggleCarrinho()" class="fixed bottom-6 right-6 bg-slate-900 text-white p-4 rounded-full shadow-2xl shadow-slate-900/40 z-40 active:scale-90 transition-transform touch-manipulation">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <button onclick="toggleCarrinho()" class="fixed bottom-6 right-6 bg-slate-900 text-white p-4 rounded-full shadow-2xl shadow-slate-900/40 z-40 active:scale-90 transition-all touch-manipulation group" id="cart-btn-float">
+        <svg class="w-6 h-6 group-hover:animate-bounce-short" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
         </svg>
-        <span id="cart-count-float" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
+        <span id="cart-count-float" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center hidden shadow-md transition-transform">0</span>
     </button>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, increment, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit, increment, doc, updateDoc, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC4g-r04tQ1PC72FpuNXJ8r7-1gTyD0CMc",
@@ -193,9 +277,37 @@
         const db = getFirestore(app);
 
         let carrinho = [];
+        let toastTimeout;
 
-        // Carregar Produtos
-        onSnapshot(collection(db, "produtos"), (snapshot) => {
+        // Mostrar toast de adição
+        function showToast(nomeProduto) {
+            const toast = document.getElementById('toast-cart');
+            document.getElementById('toast-item-name').innerText = nomeProduto;
+            document.getElementById('toast-cart-count').innerText = `Carrinho: ${carrinho.length} ${carrinho.length === 1 ? 'item' : 'itens'}`;
+            
+            toast.classList.remove('hide');
+            toast.classList.add('show');
+            
+            // Pulsar o botão do carrinho
+            const badges = ['cart-count', 'cart-count-float'];
+            badges.forEach(id => {
+                const el = document.getElementById(id);
+                el.classList.add('cart-pulse');
+                setTimeout(() => el.classList.remove('cart-pulse'), 300);
+            });
+            
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => hideToast(), 3000);
+        }
+
+        window.hideToast = () => {
+            const toast = document.getElementById('toast-cart');
+            toast.classList.remove('show');
+            toast.classList.add('hide');
+        };
+
+        // Carregar Produtos - apenas ativos
+        onSnapshot(query(collection(db, "produtos"), where("ativo", "!=", false)), (snapshot) => {
             const geral = document.getElementById('lista-geral');
             const destaques = document.getElementById('lista-destaques');
             const secDestaque = document.getElementById('sec-destaques');
@@ -206,28 +318,39 @@
 
             snapshot.forEach(res => {
                 const p = res.data();
+                if (p.ativo === false) return; // Double check
+                
                 const id = res.id;
                 const precoFinal = p.preco - (p.desconto || 0);
                 const temDesconto = p.desconto > 0;
                 
+                // Imagem do produto ou placeholder
+                const imgHtml = p.imagem ? 
+                    `<img src="${p.imagem}" class="w-full h-full object-cover" alt="${p.nome}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">` : '';
+                
                 const cardHTML = `
-                    <div class="product-card bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
+                    <div class="product-card bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm animate-fade-in">
                         <div class="relative aspect-square bg-slate-100 overflow-hidden">
-                            ${temDesconto ? `<span class="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full">-${Math.round((p.desconto/p.preco)*100)}%</span>` : ''}
-                            ${p.destaque ? `<span class="absolute top-2 right-2 bg-amber-400 text-amber-900 text-[10px] font-bold px-2 py-1 rounded-full">★</span>` : ''}
-                            <div class="w-full h-full flex items-center justify-center text-slate-300">
+                            ${imgHtml}
+                            <div class="w-full h-full flex items-center justify-center text-slate-300 ${p.imagem ? 'hidden' : ''}">
                                 <svg class="w-12 h-12 opacity-50" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                             </div>
+                            ${temDesconto ? `<span class="absolute top-2 left-2 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md">-${Math.round((p.desconto/p.preco)*100)}%</span>` : ''}
+                            ${p.destaque ? `<span class="absolute top-2 right-2 bg-amber-400 text-amber-900 text-[10px] font-bold px-2 py-1 rounded-full shadow-md">★ Destaque</span>` : ''}
                         </div>
                         <div class="p-3">
-                            <h3 class="font-semibold text-slate-900 text-sm mb-1 line-clamp-1">${p.nome}</h3>
-                            <div class="flex items-end justify-between">
-                                <div>
+                            <h3 class="font-semibold text-slate-900 text-sm mb-1 line-clamp-1" title="${p.nome}">${p.nome}</h3>
+                            <div class="flex items-end justify-between gap-2">
+                                <div class="flex-1 min-w-0">
                                     <span class="text-base font-bold text-slate-900">R$ ${precoFinal.toFixed(2)}</span>
                                     ${temDesconto ? `<span class="text-xs text-slate-400 line-through block">R$ ${p.preco.toFixed(2)}</span>` : ''}
                                 </div>
-                                <button onclick="addCarrinho('${id}', '${p.nome}', ${precoFinal})" class="bg-slate-900 text-white w-8 h-8 rounded-lg flex items-center justify-center active:scale-90 transition-transform touch-manipulation">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                <button onclick="addCarrinho('${id}', '${p.nome.replace(/'/g, "\\'")}', ${precoFinal})" 
+                                    class="bg-slate-900 text-white w-9 h-9 rounded-lg flex items-center justify-center active:scale-90 transition-all touch-manipulation hover:bg-slate-800 shadow-md"
+                                    aria-label="Adicionar ${p.nome} ao carrinho">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                    </svg>
                                 </button>
                             </div>
                         </div>
@@ -243,39 +366,51 @@
             secDestaque.style.display = temDestaque ? 'block' : 'none';
         });
 
-        // Mais Vendidos
-        onSnapshot(query(collection(db, "produtos"), orderBy("vendas", "desc"), limit(5)), (snapshot) => {
+        // Mais Vendidos - apenas ativos
+        onSnapshot(query(collection(db, "produtos"), where("ativo", "!=", false), orderBy("vendas", "desc"), limit(5)), (snapshot) => {
             const mv = document.getElementById('lista-mais-vendidos');
             mv.innerHTML = '';
             snapshot.forEach(res => {
                 const p = res.data();
-                if(p.vendas > 0) {
-                    const precoFinal = p.preco - (p.desconto || 0);
-                    mv.innerHTML += `
-                        <div class="snap-start min-w-[140px] bg-white p-3 rounded-xl shadow-sm border border-slate-100" onclick="addCarrinho('${res.id}', '${p.nome}', ${precoFinal})">
-                            <div class="aspect-square bg-slate-100 rounded-lg mb-2 flex items-center justify-center text-slate-300">
-                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                            </div>
-                            <p class="text-xs font-semibold text-slate-900 truncate mb-1">${p.nome}</p>
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm font-bold text-slate-900">R$ ${precoFinal.toFixed(2)}</span>
-                            </div>
-                        </div>`;
-                }
+                if (p.ativo === false || p.vendas === 0) return;
+                
+                const precoFinal = p.preco - (p.desconto || 0);
+                const imgHtml = p.imagem ? 
+                    `<img src="${p.imagem}" class="w-full h-full object-cover rounded-lg" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">` : '';
+                
+                mv.innerHTML += `
+                    <div class="snap-start min-w-[140px] bg-white p-3 rounded-xl shadow-sm border border-slate-100 active:scale-95 transition-transform cursor-pointer" 
+                         onclick="addCarrinho('${res.id}', '${p.nome.replace(/'/g, "\\'")}', ${precoFinal})">
+                        <div class="aspect-square bg-slate-100 rounded-lg mb-2 flex items-center justify-center text-slate-300 relative overflow-hidden">
+                            ${imgHtml}
+                            <svg class="w-6 h-6 ${p.imagem ? 'hidden' : ''}" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        </div>
+                        <p class="text-xs font-semibold text-slate-900 truncate mb-1" title="${p.nome}">${p.nome}</p>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-bold text-slate-900">R$ ${precoFinal.toFixed(2)}</span>
+                            <span class="text-[10px] text-slate-400">${p.vendas} vendas</span>
+                        </div>
+                    </div>`;
             });
         });
 
         window.addCarrinho = (id, nome, preco) => {
             carrinho.push({id, nome, preco});
             updateCartUI();
+            showToast(nome);
             
-            // Feedback tátil se disponível
-            if (navigator.vibrate) navigator.vibrate(50);
+            // Feedback tátil
+            if (navigator.vibrate) navigator.vibrate(40);
         };
 
         window.removeItem = (index) => {
             carrinho.splice(index, 1);
             updateCartUI();
+            
+            // Atualizar toast se visível
+            if (document.getElementById('toast-cart').classList.contains('show')) {
+                document.getElementById('toast-cart-count').innerText = `Carrinho: ${carrinho.length} ${carrinho.length === 1 ? 'item' : 'itens'}`;
+            }
         };
 
         function updateCartUI() {
@@ -299,16 +434,17 @@
                         <svg class="w-16 h-16 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
                         </svg>
-                        <p class="text-sm">Carrinho vazio</p>
+                        <p class="text-sm">Seu carrinho está vazio</p>
+                        <button onclick="toggleCarrinho()" class="mt-3 text-slate-900 font-medium text-sm hover:underline">Continuar comprando</button>
                     </div>`;
             } else {
                 itensContainer.innerHTML = carrinho.map((item, index) => `
-                    <div class="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-xl">
+                    <div class="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-xl animate-pop" style="animation-delay: ${index * 50}ms">
                         <div class="flex-1 min-w-0 mr-3">
                             <p class="font-medium text-slate-900 text-sm truncate">${item.nome}</p>
                             <p class="text-slate-500 text-sm">R$ ${item.preco.toFixed(2)}</p>
                         </div>
-                        <button onclick="removeItem(${index})" class="p-2 text-slate-400 active:text-red-500 transition-colors">
+                        <button onclick="removeItem(${index})" class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors touch-manipulation" aria-label="Remover item">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
@@ -341,23 +477,27 @@
 
         window.finalizarPedido = async () => {
             const nome = document.getElementById('cli-nome').value.trim();
+            const whats = document.getElementById('cli-whats').value.trim();
+            
             if(!nome || carrinho.length === 0) {
-                alert("Preencha seu nome e adicione itens!");
+                alert("Preencha seu nome e adicione itens ao carrinho!");
                 return;
             }
 
-            const btn = event.target;
-            btn.innerText = "Enviando...";
+            const btn = document.getElementById('btn-finalizar');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Enviando...';
             btn.disabled = true;
 
             const pedido = {
                 cliente: nome,
-                whats: document.getElementById('cli-whats').value,
+                whats: whats,
                 endereco: document.getElementById('cli-end').value,
                 itens: carrinho,
                 total: carrinho.reduce((acc, i) => acc + i.preco, 0),
                 status: "pendente",
-                data: new Date()
+                data: new Date(),
+                dataTimestamp: Date.now()
             };
 
             try {
@@ -366,18 +506,26 @@
                     updateDoc(doc(db, "produtos", item.id), { vendas: increment(1) })
                 ));
 
-                alert(`Pedido enviado! Obrigado, ${nome}.`);
+                // Sucesso
                 carrinho = [];
                 updateCartUI();
                 toggleCarrinho();
                 
+                // Limpar formulário
                 document.getElementById('cli-nome').value = '';
                 document.getElementById('cli-whats').value = '';
                 document.getElementById('cli-end').value = '';
+                
+                // Mostrar confirmação
+                setTimeout(() => {
+                    alert(`Pedido enviado com sucesso!\n\nObrigado, ${nome}!\nEm breve entraremos em contato.`);
+                }, 300);
+                
             } catch (error) {
-                alert("Erro ao enviar. Tente novamente.");
+                console.error(error);
+                alert("Erro ao enviar pedido. Tente novamente.");
             } finally {
-                btn.innerText = "Finalizar Compra";
+                btn.innerHTML = originalHTML;
                 btn.disabled = false;
             }
         };
