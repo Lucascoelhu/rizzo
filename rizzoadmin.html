@@ -3,144 +3,97 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minha Loja - Pedidos</title>
+    <title>Painel Administrativo</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .cart-badge { position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 10px; }
-    </style>
 </head>
-<body class="bg-gray-100 pb-20">
+<body class="bg-gray-800 text-white min-h-screen">
 
-    <header class="bg-green-600 text-white p-4 shadow-lg sticky top-0 z-50">
-        <h1 class="text-xl font-bold text-center">🚀 Delivery Express</h1>
-    </header>
+    <div class="max-w-4xl mx-auto p-6">
+        <header class="flex justify-between items-center mb-10 border-b border-gray-700 pb-4">
+            <h1 class="text-2xl font-bold">Admin Panel 📦</h1>
+            <div class="relative">
+                🔔 <span id="notif-count" class="bg-red-600 text-xs px-2 py-1 rounded-full absolute -top-2 -right-2">0</span>
+            </div>
+        </header>
 
-    <main class="max-w-md mx-auto p-4 space-y-6">
-        <section id="sec-destaques" class="hidden">
-            <h2 class="text-lg font-bold text-orange-600 mb-2">🔥 Destaques do Dia</h2>
-            <div id="lista-destaques" class="grid grid-cols-1 gap-3"></div>
-        </section>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <section class="bg-gray-900 p-6 rounded-xl">
+                <h2 class="text-xl font-bold mb-4">Novo Produto</h2>
+                <div class="space-y-3">
+                    <input id="p-nome" type="text" placeholder="Nome do Produto" class="w-full bg-gray-700 p-2 rounded">
+                    <input id="p-preco" type="number" placeholder="Preço" class="w-full bg-gray-700 p-2 rounded">
+                    <input id="p-desc" type="number" placeholder="Desconto (R$)" class="w-full bg-gray-700 p-2 rounded">
+                    <label class="flex items-center gap-2">
+                        <input id="p-destaque" type="checkbox"> Ativar Destaque
+                    </label>
+                    <button onclick="salvarProduto()" class="w-full bg-blue-600 p-2 rounded font-bold hover:bg-blue-700">CADASTRAR</button>
+                </div>
+            </section>
 
-        <section>
-            <h2 class="text-lg font-bold text-blue-600 mb-2">🏆 Mais Vendidos</h2>
-            <div id="lista-mais-vendidos" class="flex overflow-x-auto gap-4 p-2"></div>
-        </section>
-
-        <section>
-            <h2 class="text-lg font-bold text-gray-700 mb-2">Cardápio</h2>
-            <div id="lista-geral" class="bg-white rounded-lg shadow divide-y"></div>
-        </section>
-    </main>
-
-    <div id="carrinho-modal" class="fixed bottom-0 left-0 right-0 bg-white p-4 shadow-2xl border-t-4 border-green-500 rounded-t-2xl transform translate-y-full transition-transform duration-300 z-50">
-        <h3 class="font-bold mb-2">Meu Pedido</h3>
-        <div id="itens-carrinho" class="max-h-40 overflow-y-auto mb-4 text-sm"></div>
-        <input id="cli-nome" type="text" placeholder="Nome" class="w-full border p-2 rounded mb-2">
-        <input id="cli-whats" type="text" placeholder="WhatsApp" class="w-full border p-2 rounded mb-2">
-        <input id="cli-end" type="text" placeholder="Endereço e Número" class="w-full border p-2 rounded mb-2">
-        <button onclick="finalizarPedido()" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg text-lg">Enviar Pedido via Sistema</button>
-        <button onclick="toggleCarrinho()" class="w-full text-gray-500 mt-2 text-sm">Fechar</button>
+            <section class="bg-gray-900 p-6 rounded-xl">
+                <h2 class="text-xl font-bold mb-4 italic text-orange-400">Pedidos Recebidos (<span id="total-pedidos">0</span>)</h2>
+                <div id="lista-pedidos" class="space-y-4 max-h-[500px] overflow-y-auto"></div>
+            </section>
+        </div>
     </div>
-
-    <button onclick="toggleCarrinho()" class="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl">
-        🛒 <span id="cart-count" class="cart-badge">0</span>
-    </button>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, limit, increment, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = { /* COLE AQUI */ };
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        let carrinho = [];
-
-        // Carregar Produtos em Tempo Real
-        onSnapshot(collection(db, "produtos"), (snapshot) => {
-            const geral = document.getElementById('lista-geral');
-            const destaques = document.getElementById('lista-destaques');
-            const secDestaque = document.getElementById('sec-destaques');
-            
-            geral.innerHTML = ''; destaques.innerHTML = '';
-            let temDestaque = false;
-
-            snapshot.forEach(res => {
-                const p = res.data();
-                const id = res.id;
-                const precoFinal = p.preco - p.desconto;
-                const html = `
-                    <div class="p-4 flex justify-between items-center">
-                        <div>
-                            <p class="font-bold">${p.nome}</p>
-                            <p class="text-green-600 text-sm">R$ ${precoFinal.toFixed(2)} ${p.desconto > 0 ? `<span class="text-red-400 line-through text-xs">R$ ${p.preco}</span>` : ''}</p>
-                        </div>
-                        <button onclick="addCarrinho('${id}', '${p.nome}', ${precoFinal})" class="bg-green-100 text-green-700 px-4 py-1 rounded-full font-bold">+ Add</button>
-                    </div>`;
-
-                if(p.destaque) {
-                    destaques.innerHTML += html;
-                    temDestaque = true;
-                }
-                geral.innerHTML += html;
-            });
-            secDestaque.style.display = temDestaque ? 'block' : 'none';
-        });
-
-        // Carregar Mais Vendidos (Top 5 por vendas)
-        onSnapshot(query(collection(db, "produtos"), orderBy("vendas", "desc"), limit(5)), (snapshot) => {
-            const mv = document.getElementById('lista-mais-vendidos');
-            mv.innerHTML = '';
-            snapshot.forEach(res => {
-                const p = res.data();
-                if(p.vendas > 0) {
-                    mv.innerHTML += `<div class="min-w-[120px] bg-white p-3 rounded-lg shadow text-center border-b-2 border-blue-400">
-                        <p class="text-xs font-bold truncate">${p.nome}</p>
-                        <p class="text-blue-500 text-sm font-bold">R$ ${(p.preco - p.desconto).toFixed(2)}</p>
-                    </div>`;
-                }
-            });
-        });
-
-        window.addCarrinho = (id, nome, preco) => {
-            carrinho.push({id, nome, preco});
-            updateCartUI();
-        };
-
-        function updateCartUI() {
-            document.getElementById('cart-count').innerText = carrinho.length;
-            document.getElementById('itens-carrinho').innerHTML = carrinho.map(i => `<div>• ${i.nome} - R$ ${i.preco.toFixed(2)}</div>`).join('');
-        }
-
-        window.toggleCarrinho = () => {
-            const modal = document.getElementById('carrinho-modal');
-            modal.style.transform = modal.style.transform === 'translateY(0%)' ? 'translateY(100%)' : 'translateY(0%)';
-        };
-
-        window.finalizarPedido = async () => {
-            const nome = document.getElementById('cli-nome').value;
-            if(!nome || carrinho.length === 0) return alert("Preencha seu nome e adicione itens!");
-
-            const pedido = {
-                cliente: nome,
-                whats: document.getElementById('cli-whats').value,
-                endereco: document.getElementById('cli-end').value,
-                itens: carrinho,
-                total: carrinho.reduce((acc, i) => acc + i.preco, 0),
-                status: "pendente",
-                data: new Date()
+        window.salvarProduto = async () => {
+            const data = {
+                nome: document.getElementById('p-nome').value,
+                preco: Number(document.getElementById('p-preco').value),
+                desconto: Number(document.getElementById('p-desc').value),
+                destaque: document.getElementById('p-destaque').checked,
+                vendas: 0
             };
+            await addDoc(collection(db, "produtos"), data);
+            alert("Produto cadastrado!");
+        };
 
-            // Salvar Pedido e Incrementar Vendas
-            await addDoc(collection(db, "pedidos"), pedido);
-            carrinho.forEach(async item => {
-                await updateDoc(doc(db, "produtos", item.id), { vendas: increment(1) });
+        // Escutar Pedidos
+        onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snapshot) => {
+            const container = document.getElementById('lista-pedidos');
+            const totalEletro = document.getElementById('total-pedidos');
+            const notif = document.getElementById('notif-count');
+            
+            container.innerHTML = '';
+            let pendentes = 0;
+
+            snapshot.forEach(res => {
+                const p = res.data();
+                if(p.status === "pendente") pendentes++;
+
+                container.innerHTML += `
+                    <div class="bg-gray-800 p-4 rounded-lg border-l-4 ${p.status === 'pendente' ? 'border-orange-500' : 'border-green-500'}">
+                        <p class="font-bold">${p.cliente} - R$ ${p.total.toFixed(2)}</p>
+                        <p class="text-xs text-gray-400">${p.endereco}</p>
+                        <div class="flex gap-2 mt-3">
+                            <button onclick="confirmar('${res.id}')" class="text-xs bg-green-700 px-2 py-1 rounded">Recebido</button>
+                            <button onclick="avisar('${p.whats}', '${p.cliente}')" class="text-xs bg-emerald-600 px-2 py-1 rounded">Zap</button>
+                            <button onclick="recibo('${p.cliente}', ${p.total})" class="text-xs bg-gray-600 px-2 py-1 rounded">Recibo</button>
+                        </div>
+                    </div>`;
             });
+            totalEletro.innerText = snapshot.size;
+            notif.innerText = pendentes;
+        });
 
-            alert("Pedido enviado!");
-            carrinho = [];
-            updateCartUI();
-            toggleCarrinho();
+        window.confirmar = async (id) => { await updateDoc(doc(db, "pedidos", id), { status: "recebido" }); };
+        
+        window.avisar = (whats, nome) => {
+            const msg = `Olá ${nome}! Seu pedido já foi recebido por nossa equipe. 🍕`;
+            window.open(`https://wa.me/55${whats.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`);
+        };
+
+        window.recibo = (nome, total) => {
+            alert(`--- RECIBO ---\nCliente: ${nome}\nTotal: R$ ${total.toFixed(2)}\nStatus: Recebido`);
         };
     </script>
 </body>
