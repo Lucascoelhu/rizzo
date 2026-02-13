@@ -27,18 +27,104 @@
         .safe-area-top { padding-top: env(safe-area-inset-top); }
         .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
         
-        /* Upload de imagem */
-        .upload-area {
-            border: 2px dashed #475569;
-            transition: all 0.3s;
+        /* Upload de imagem - DUAS OPÇÕES */
+        .upload-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
         }
-        .upload-area:hover, .upload-area.dragover {
+        
+        .upload-option {
+            border: 2px dashed #475569;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(30, 41, 59, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .upload-option:hover {
             border-color: #3b82f6;
             background: rgba(59, 130, 246, 0.1);
+            transform: translateY(-2px);
         }
-        .upload-area.has-image {
-            border-style: solid;
+        
+        .upload-option.active {
             border-color: #10b981;
+            border-style: solid;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .upload-option i {
+            font-size: 28px;
+            margin-bottom: 8px;
+            display: block;
+        }
+        
+        .upload-option.camera-option i { color: #f59e0b; }
+        .upload-option.gallery-option i { color: #3b82f6; }
+        
+        .upload-option span {
+            font-size: 12px;
+            color: #94a3b8;
+            display: block;
+        }
+        
+        .upload-option:hover span {
+            color: #e2e8f0;
+        }
+
+        .image-preview-container {
+            position: relative;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid #10b981;
+            display: none;
+        }
+        
+        .image-preview-container.active {
+            display: block;
+        }
+        
+        .image-preview-container img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        
+        .remove-image-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(239, 68, 68, 0.9);
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .remove-image-btn:hover {
+            background: rgba(239, 68, 68, 1);
+            transform: scale(1.1);
+        }
+
+        .hidden-input {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
         }
         
         /* Toast notification */
@@ -67,11 +153,202 @@
         .toast.success { border-left: 4px solid #10b981; }
         .toast.error { border-left: 4px solid #ef4444; }
         
-        /* Código de assinatura */
         .code-display {
             font-family: 'Courier New', monospace;
             letter-spacing: 2px;
         }
+
+        /* Modal da Câmera */
+        .camera-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.95);
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+        }
+        
+        .camera-modal.active {
+            display: flex;
+        }
+        
+        .camera-preview {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .camera-preview video, .camera-preview canvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .camera-controls {
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            background: rgba(0,0,0,0.8);
+        }
+        
+        .camera-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 4px solid white;
+            background: transparent;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+        
+        .camera-btn::after {
+            content: '';
+            position: absolute;
+            inset: 4px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        
+        .camera-btn:active::after {
+            transform: scale(0.9);
+        }
+        
+        .camera-btn.capture::after {
+            background: #ef4444;
+        }
+        
+        .camera-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            z-index: 10;
+        }
+
+        /* ===== ESTILOS DO RECIBO TÉRMICO 48mm ===== */
+        @media print {
+            @page {
+                size: 48mm auto;
+                margin: 0;
+            }
+            body * {
+                visibility: hidden;
+            }
+            #receipt-thermal-print, #receipt-thermal-print * {
+                visibility: visible;
+            }
+            #receipt-thermal-print {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 48mm;
+                padding: 2mm;
+                font-family: 'Courier New', monospace;
+                font-size: 9pt;
+                line-height: 1.2;
+            }
+        }
+
+        .receipt-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(4px);
+            z-index: 150;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .receipt-modal.active {
+            display: flex;
+        }
+
+        .receipt-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 400px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .thermal-preview {
+            background: white;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto;
+            padding: 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            border: 1px dashed #ccc;
+            position: relative;
+        }
+
+        .thermal-preview::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 2px,
+                #000 2px,
+                #000 4px
+            );
+            opacity: 0.1;
+        }
+
+        .share-buttons {
+            display: flex;
+            gap: 8px;
+            padding: 16px;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+        }
+
+        .share-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .share-btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-whatsapp { background: #25d366; color: white; }
+        .btn-print { background: #0f172a; color: white; }
+        .btn-share { background: #3b82f6; color: white; }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
@@ -80,6 +357,95 @@
     <div id="toast" class="toast">
         <i class="fas fa-check-circle text-emerald-400"></i>
         <span id="toast-msg">Operação realizada!</span>
+    </div>
+
+    <!-- Modal da Câmera -->
+    <div id="camera-modal" class="camera-modal">
+        <button class="camera-close" onclick="closeCamera()">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="camera-preview">
+            <video id="camera-video" autoplay playsinline></video>
+            <canvas id="camera-canvas" style="display: none;"></canvas>
+        </div>
+        <div class="camera-controls">
+            <button class="camera-btn capture" onclick="takePhoto()" title="Tirar foto"></button>
+        </div>
+    </div>
+
+    <!-- Modal de Recibo/Comprovante -->
+    <div id="receipt-modal" class="receipt-modal" onclick="closeReceiptModal(event)">
+        <div class="receipt-content" onclick="event.stopPropagation()">
+            <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                <h3 class="font-bold text-slate-900">Comprovante de Pedido</h3>
+                <button onclick="closeReceiptModal()" class="p-2 hover:bg-slate-200 rounded-full transition-colors">
+                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="p-4 overflow-y-auto flex-1 bg-slate-100">
+                <!-- Preview do recibo térmico -->
+                <div class="thermal-preview">
+                    <div id="receipt-thermal-print">
+                        <div style="text-align: center; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 8px;">
+                            <div style="font-size: 14px; font-weight: bold;">BILL RIZZO</div>
+                            <div style="font-size: 9px;">Loja Oficial</div>
+                            <div style="font-size: 9px; margin-top: 4px;" id="receipt-date"></div>
+                        </div>
+                        
+                        <div style="margin-bottom: 8px;">
+                            <div style="font-size: 9px;">CLIENTE:</div>
+                            <div id="receipt-client" style="font-weight: bold;"></div>
+                            <div id="receipt-phone" style="font-size: 9px;"></div>
+                        </div>
+
+                        <div style="border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 4px 0; margin: 8px 0;">
+                            <div style="display: flex; justify-content: space-between; font-size: 9px; font-weight: bold;">
+                                <span>ITEM</span>
+                                <span>VL</span>
+                            </div>
+                        </div>
+
+                        <div id="receipt-items"></div>
+
+                        <div style="border-top: 1px dashed #000; margin-top: 8px; padding-top: 8px;">
+                            <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 12px;">
+                                <span>TOTAL</span>
+                                <span id="receipt-total"></span>
+                            </div>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 16px; font-size: 9px; border-top: 1px dashed #000; padding-top: 8px;">
+                            <div>Obrigado pela preferência!</div>
+                            <div style="margin-top: 4px;">Bill Rizzo Store</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="share-buttons">
+                <button onclick="shareReceipt()" class="share-btn btn-share">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                    </svg>
+                    Compartilhar
+                </button>
+                <button onclick="printThermalReceipt()" class="share-btn btn-print">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                    </svg>
+                    Imprimir 48mm
+                </button>
+                <button onclick="sendReceiptWhatsApp()" class="share-btn btn-whatsapp">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                    WhatsApp
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Header -->
@@ -201,21 +567,35 @@
                     <i class="fas fa-plus-circle text-blue-400"></i> Novo Produto
                 </h3>
                 
-                <!-- Upload de Imagem -->
+                <!-- Upload de Imagem - DUAS OPÇÕES -->
                 <div class="mb-4">
                     <label class="block text-sm text-slate-400 mb-2">Foto do Produto</label>
-                    <div id="upload-area" class="upload-area rounded-xl p-6 text-center cursor-pointer relative overflow-hidden" onclick="document.getElementById('file-input').click()">
-                        <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
-                        <div id="upload-placeholder">
-                            <i class="fas fa-cloud-upload-alt text-3xl text-slate-500 mb-2"></i>
-                            <p class="text-sm text-slate-400">Clique para adicionar foto</p>
-                            <p class="text-xs text-slate-600 mt-1">JPG, PNG até 5MB</p>
+                    
+                    <!-- Opções de upload -->
+                    <div class="upload-container" id="upload-options">
+                        <!-- Opção Câmera -->
+                        <div class="upload-option camera-option" onclick="openCamera()">
+                            <input type="file" accept="image/*" capture="environment" class="hidden-input" id="camera-input" onchange="handleImageSelect(event)">
+                            <i class="fas fa-camera"></i>
+                            <span>Tirar Foto</span>
                         </div>
-                        <img id="image-preview" class="absolute inset-0 w-full h-full object-cover hidden" />
-                        <button id="remove-image" onclick="event.stopPropagation(); removeImage()" class="absolute top-2 right-2 bg-red-500 text-white w-8 h-8 rounded-full hidden z-10 hover:bg-red-600">
+                        
+                        <!-- Opção Galeria -->
+                        <div class="upload-option gallery-option">
+                            <input type="file" accept="image/*" class="hidden-input" id="gallery-input" onchange="handleImageSelect(event)">
+                            <i class="fas fa-images"></i>
+                            <span>Carregar Foto</span>
+                        </div>
+                    </div>
+
+                    <!-- Preview da imagem -->
+                    <div class="image-preview-container" id="image-preview-container">
+                        <img id="image-preview" src="" alt="Preview">
+                        <button class="remove-image-btn" onclick="removeImage()" title="Remover imagem">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
+                    
                     <input type="hidden" id="p-imagem" />
                 </div>
 
@@ -465,6 +845,11 @@
             </div>
 
             <div class="p-6 border-t border-slate-800 bg-slate-800/30 space-y-2 safe-area-bottom">
+                <!-- Botão Ver Comprovante -->
+                <button onclick="abrirComprovante()" id="btn-comprovante" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2">
+                    <i class="fas fa-receipt text-xl"></i> Ver Comprovante / Recibo
+                </button>
+                
                 <!-- Botão Avisar Cliente -->
                 <button onclick="avisarClienteRecebido()" id="btn-avisar" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2 hidden">
                     <i class="fab fa-whatsapp text-xl"></i> Avisar Cliente (Pedido Recebido)
@@ -511,6 +896,7 @@
         let configTelegram = { token: '', chatId: '' };
         let codigoAtual = '';
         let dadosAssinaturaAtual = {};
+        let streamAtual = null;
 
         // Toast
         function showToast(msg, type = 'success') {
@@ -540,8 +926,60 @@
             }
         };
 
-        // Upload de Imagem
-        window.handleImageUpload = (e) => {
+        // ===== FUNÇÕES DE CÂMERA E UPLOAD =====
+
+        window.openCamera = async () => {
+            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                document.getElementById('camera-input').click();
+                return;
+            }
+
+            try {
+                const modal = document.getElementById('camera-modal');
+                const video = document.getElementById('camera-video');
+                
+                modal.classList.add('active');
+                
+                streamAtual = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' }, 
+                    audio: false 
+                });
+                
+                video.srcObject = streamAtual;
+            } catch (err) {
+                console.error('Erro ao acessar câmera:', err);
+                showToast('Erro ao acessar câmera. Use a opção de carregar foto.', 'error');
+                document.getElementById('camera-input').click();
+            }
+        };
+
+        window.takePhoto = () => {
+            const video = document.getElementById('camera-video');
+            const canvas = document.getElementById('camera-canvas');
+            const context = canvas.getContext('2d');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            imagemBase64 = canvas.toDataURL('image/jpeg', 0.8);
+            
+            showImagePreview(imagemBase64);
+            
+            closeCamera();
+        };
+
+        window.closeCamera = () => {
+            const modal = document.getElementById('camera-modal');
+            modal.classList.remove('active');
+            
+            if (streamAtual) {
+                streamAtual.getTracks().forEach(track => track.stop());
+                streamAtual = null;
+            }
+        };
+
+        window.handleImageSelect = (e) => {
             const file = e.target.files[0];
             if (!file) return;
             
@@ -553,22 +991,105 @@
             const reader = new FileReader();
             reader.onload = (event) => {
                 imagemBase64 = event.target.result;
-                document.getElementById('image-preview').src = imagemBase64;
-                document.getElementById('image-preview').classList.remove('hidden');
-                document.getElementById('upload-placeholder').classList.add('hidden');
-                document.getElementById('remove-image').classList.remove('hidden');
-                document.getElementById('upload-area').classList.add('has-image');
+                showImagePreview(imagemBase64);
             };
             reader.readAsDataURL(file);
         };
 
+        function showImagePreview(base64) {
+            document.getElementById('upload-options').style.display = 'none';
+            document.getElementById('image-preview-container').classList.add('active');
+            document.getElementById('image-preview').src = base64;
+            document.getElementById('p-imagem').value = base64;
+        }
+
         window.removeImage = () => {
             imagemBase64 = null;
-            document.getElementById('file-input').value = '';
-            document.getElementById('image-preview').classList.add('hidden');
-            document.getElementById('upload-placeholder').classList.remove('hidden');
-            document.getElementById('remove-image').classList.add('hidden');
-            document.getElementById('upload-area').classList.remove('has-image');
+            document.getElementById('p-imagem').value = '';
+            document.getElementById('upload-options').style.display = 'grid';
+            document.getElementById('image-preview-container').classList.remove('active');
+            document.getElementById('image-preview').src = '';
+            
+            document.getElementById('camera-input').value = '';
+            document.getElementById('gallery-input').value = '';
+        };
+
+        // ===== FUNÇÕES DO RECIBO/COMPROVANTE =====
+
+        function generateReceiptContent() {
+            if (!pedidoAtual) return;
+            
+            const data = pedidoAtual.data?.toDate() || new Date();
+            document.getElementById('receipt-date').innerText = data.toLocaleString('pt-BR');
+            document.getElementById('receipt-client').innerText = pedidoAtual.cliente;
+            document.getElementById('receipt-phone').innerText = pedidoAtual.whats || 'Sem telefone';
+            
+            const itemsContainer = document.getElementById('receipt-items');
+            const grouped = {};
+            
+            pedidoAtual.itens.forEach(item => {
+                if (!grouped[item.nome]) {
+                    grouped[item.nome] = { ...item, quantidade: 0 };
+                }
+                grouped[item.nome].quantidade++;
+            });
+            
+            itemsContainer.innerHTML = Object.values(grouped).map(item => `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 10px;">
+                    <span>${item.quantidade}x ${item.nome.substring(0, 12)}${item.nome.length > 12 ? '...' : ''}</span>
+                    <span>R$ ${(item.preco * item.quantidade).toFixed(2)}</span>
+                </div>
+            `).join('');
+            
+            document.getElementById('receipt-total').innerText = `R$ ${(pedidoAtual.totalFinal || pedidoAtual.total).toFixed(2)}`;
+        }
+
+        window.abrirComprovante = () => {
+            generateReceiptContent();
+            document.getElementById('receipt-modal').classList.add('active');
+        };
+
+        window.closeReceiptModal = (event) => {
+            if (!event || event.target.id === 'receipt-modal') {
+                document.getElementById('receipt-modal').classList.remove('active');
+            }
+        };
+
+        window.printThermalReceipt = () => {
+            window.print();
+        };
+
+        window.shareReceipt = async () => {
+            if (!pedidoAtual) return;
+            
+            const texto = `*Comprovante - Bill Rizzo*\n\nCliente: ${pedidoAtual.cliente}\nData: ${new Date().toLocaleString('pt-BR')}\n\n*Itens:*\n${pedidoAtual.itens.map(i => `• ${i.nome} - R$ ${i.preco.toFixed(2)}`).join('\n')}\n\n*Total: R$ ${(pedidoAtual.totalFinal || pedidoAtual.total).toFixed(2)}*\n\nObrigado pela preferência!`;
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'Comprovante Bill Rizzo',
+                        text: texto
+                    });
+                } catch (err) {
+                    console.log('Share canceled');
+                }
+            } else {
+                navigator.clipboard.writeText(texto).then(() => {
+                    alert('Comprovante copiado para área de transferência!');
+                });
+            }
+        };
+
+        window.sendReceiptWhatsApp = () => {
+            if (!pedidoAtual || !pedidoAtual.whats) {
+                alert('Cliente sem WhatsApp cadastrado');
+                return;
+            }
+            
+            const texto = `Olá ${pedidoAtual.cliente}! 👋\n\n✅ *Pedido Recebido!*\n\nSeu pedido foi confirmado com sucesso!\n\n*Total:* R$ ${(pedidoAtual.totalFinal || pedidoAtual.total).toFixed(2)}\n*Itens:* ${pedidoAtual.itens.length}\n\nAgradecemos a preferência! 🚀`;
+
+            const numero = pedidoAtual.whats.replace(/\D/g, '');
+            window.open(`https://wa.me/55${numero}?text=${encodeURIComponent(texto)}`, '_blank');
         };
 
         // Salvar Produto
@@ -616,7 +1137,6 @@
             }
         };
 
-        // Toggle Visibilidade
         window.toggleVisibilidade = async (id, atual) => {
             await updateDoc(doc(db, "produtos", id), { ativo: !atual });
             showToast(atual ? 'Produto oculto' : 'Produto visível');
@@ -691,14 +1211,7 @@
         window.enviarCodigoWhatsApp = () => {
             if (!dadosAssinaturaAtual.nome) return;
             
-            const msg = `Olá ${dadosAssinaturaAtual.nome}! 👋\n\n` +
-                       `✅ Sua assinatura foi criada!\n\n` +
-                       `📋 *Código:* ${codigoAtual}\n` +
-                       `🔰 *Plano:* ${dadosAssinaturaAtual.plano.charAt(0).toUpperCase() + dadosAssinaturaAtual.plano.slice(1)}\n` +
-                       `💰 *Valor:* R$ ${dadosAssinaturaAtual.valor.toFixed(2)}\n` +
-                       `📅 *Válido até:* ${dadosAssinaturaAtual.dataFim.toLocaleDateString('pt-BR')}\n\n` +
-                       `Use seu código para ativar sua assinatura na Bill Rizzo!\n\n` +
-                       `Obrigado! 🚀`;
+            const msg = `Olá ${dadosAssinaturaAtual.nome}! 👋\n\n✅ Sua assinatura foi criada!\n\n📋 *Código:* ${codigoAtual}\n🔰 *Plano:* ${dadosAssinaturaAtual.plano.charAt(0).toUpperCase() + dadosAssinaturaAtual.plano.slice(1)}\n💰 *Valor:* R$ ${dadosAssinaturaAtual.valor.toFixed(2)}\n📅 *Válido até:* ${dadosAssinaturaAtual.dataFim.toLocaleDateString('pt-BR')}\n\nUse seu código para ativar sua assinatura na Bill Rizzo!\n\nObrigado! 🚀`;
             
             window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
         };
@@ -709,10 +1222,9 @@
         };
 
         window.abrirGeradorCompleto = () => {
-            window.open('gerador-assinaturas.html', '_blank', 'width=500,height=800,scrollbars=yes');
+            window.open('ativador-rizzo.html', '_blank', 'width=500,height=800,scrollbars=yes');
         };
 
-        // Carregar Assinaturas
         onSnapshot(query(collection(db, "assinaturas"), orderBy("dataCriacao", "desc")), (snapshot) => {
             const container = document.getElementById('lista-assinaturas');
             const totalEl = document.getElementById('total-assinaturas');
@@ -861,7 +1373,6 @@
 
         // ========== PEDIDOS ==========
 
-        // Carregar Produtos
         onSnapshot(query(collection(db, "produtos"), orderBy("dataCriacao", "desc")), (snapshot) => {
             const container = document.getElementById('lista-produtos-admin');
             const totalEl = document.getElementById('total-produtos');
@@ -899,7 +1410,6 @@
             atualizarDashboard();
         });
 
-        // Carregar Pedidos
         onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snapshot) => {
             pedidosData = [];
             snapshot.forEach(res => {
@@ -909,7 +1419,6 @@
             aplicarFiltros();
             atualizarDashboard();
             
-            // Notificar Telegram se necessário
             snapshot.docChanges().forEach(change => {
                 if (change.type === 'added' && configTelegram.token && configTelegram.chatId) {
                     const pedido = change.doc.data();
@@ -922,14 +1431,7 @@
 
         async function notificarTelegramNovoPedido(pedido) {
             const itensText = pedido.itens.map(i => `• ${i.nome} - R$ ${i.preco.toFixed(2)}`).join('\n');
-            const msg = `🛒 *NOVO PEDIDO - Bill Rizzo*\n\n` +
-                       `👤 *Cliente:* ${pedido.cliente}\n` +
-                       `📱 *WhatsApp:* ${pedido.whats || 'Não informado'}\n` +
-                       `📍 *Endereço:* ${pedido.endereco || 'Não informado'}\n\n` +
-                       `📦 *Itens:*\n${itensText}\n\n` +
-                       `💰 *Total:* R$ ${pedido.total.toFixed(2)}\n` +
-                       `⏰ *Data:* ${new Date().toLocaleString('pt-BR')}\n\n` +
-                       `Status: ⏳ Pendente`;
+            const msg = `🛒 *NOVO PEDIDO - Bill Rizzo*\n\n👤 *Cliente:* ${pedido.cliente}\n📱 *WhatsApp:* ${pedido.whats || 'Não informado'}\n📍 *Endereço:* ${pedido.endereco || 'Não informado'}\n\n📦 *Itens:*\n${itensText}\n\n💰 *Total:* R$ ${pedido.total.toFixed(2)}\n⏰ *Data:* ${new Date().toLocaleString('pt-BR')}\n\nStatus: ⏳ Pendente`;
             
             try {
                 await fetch(`https://api.telegram.org/bot${configTelegram.token}/sendMessage`, {
@@ -946,7 +1448,6 @@
             }
         }
 
-        // Filtros
         window.filtrarStatus = (status) => {
             filtroAtual = status;
             document.querySelectorAll('.filtro-btn').forEach(btn => {
@@ -1028,7 +1529,6 @@
             }).join('');
         }
 
-        // Modal Pedido
         window.abrirPedido = (id) => {
             pedidoAtual = pedidosData.find(p => p.id === id);
             if (!pedidoAtual) return;
@@ -1146,12 +1646,7 @@
                 return;
             }
             
-            const msg = `Olá ${pedidoAtual.cliente}! 👋\n\n` +
-                       `✅ *Pedido Recebido!*\n\n` +
-                       `Seu pedido foi recebido com sucesso e já está sendo preparado.\n\n` +
-                       `*Total:* R$ ${(pedidoAtual.totalFinal || pedidoAtual.total)?.toFixed(2)}\n` +
-                       `*Itens:* ${pedidoAtual.itens?.length || 0}\n\n` +
-                       `Obrigado por comprar na Bill Rizzo! 🚀`;
+            const msg = `Olá ${pedidoAtual.cliente}! 👋\n\n✅ *Pedido Recebido!*\n\nSeu pedido foi recebido com sucesso e já está sendo preparado.\n\n*Total:* R$ ${(pedidoAtual.totalFinal || pedidoAtual.total)?.toFixed(2)}\n*Itens:* ${pedidoAtual.itens?.length || 0}\n\nObrigado por comprar na Bill Rizzo! 🚀`;
             
             window.open(`https://wa.me/55${pedidoAtual.whats.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
             
