@@ -6,11 +6,12 @@
     <meta name="theme-color" content="#0f172a">
     <title>Bill Rizzo | Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { overscroll-behavior: none; }
+        body { overscroll-behavior: none; background: #0f172a; }
         
         /* Mobile otimizado */
         .mobile-card { 
@@ -28,12 +29,14 @@
         /* Touch targets */
         .touch-btn { min-height: 44px; min-width: 44px; }
         
-        /* Animações */
-        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* Animações melhoradas */
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         
         .animate-slide-in { animation: slideIn 0.3s ease-out; }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out; }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
+        .animate-pulse-soft { animation: pulse-soft 2s infinite; }
         
         /* Receipt/Cupom elegante */
         .receipt-elegant {
@@ -54,7 +57,7 @@
             background-position: -10px 0;
         }
         
-        /* Toast */
+        /* Toast melhorado */
         .toast {
             position: fixed;
             top: 80px;
@@ -67,11 +70,13 @@
             font-weight: 600;
             z-index: 100;
             opacity: 0;
-            transition: all 0.3s;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         }
         
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
         .toast.error { background: #ef4444; }
+        .toast.warning { background: #f59e0b; }
         
         /* Modal otimizado */
         .modal-sheet {
@@ -83,7 +88,7 @@
             border-radius: 24px 24px 0 0;
             z-index: 60;
             transform: translateY(100%);
-            transition: transform 0.3s ease-out;
+            transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
             max-height: 90vh;
             overflow: hidden;
             display: flex;
@@ -100,6 +105,7 @@
             color: white;
             text-align: center;
             box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+            transition: all 0.3s ease;
         }
         
         .days-counter.warning {
@@ -129,6 +135,7 @@
             text-align: center;
             text-transform: uppercase;
             font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
         }
         
         .ativacao-input:focus {
@@ -152,15 +159,18 @@
         
         .lock-screen.active {
             display: flex;
+            animation: fadeIn 0.5s ease;
         }
         
         /* CONTEÚDO PRINCIPAL */
         .main-content {
             display: none;
+            min-height: 100vh;
         }
         
         .main-content.active {
             display: block;
+            animation: fadeIn 0.5s ease;
         }
         
         /* Card de info */
@@ -169,6 +179,12 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
             padding: 16px;
+            transition: all 0.2s ease;
+        }
+        
+        .info-card:hover {
+            background: rgba(30, 41, 59, 0.8);
+            border-color: rgba(255, 255, 255, 0.2);
         }
         
         /* Badge de status no header */
@@ -180,6 +196,7 @@
             border-radius: 20px;
             font-size: 11px;
             font-weight: 600;
+            transition: all 0.3s ease;
         }
         
         .header-status.ativo {
@@ -191,14 +208,54 @@
             background: rgba(239, 68, 68, 0.2);
             color: #ef4444;
         }
+        
+        /* Scrollbar customizada */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Efeitos de loading */
+        .skeleton {
+            background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* Botões com efeito de onda */
+        .btn-ripple {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-ripple::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn-ripple:active::after {
+            width: 300px;
+            height: 300px;
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100">
 
     <!-- TELA DE BLOQUEIO (só aparece quando sistema expirado) -->
     <div id="lock-screen" class="lock-screen">
-        <div class="text-center mb-8">
-            <div class="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div class="text-center mb-8 animate-fade-in">
+            <div class="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-sm border border-white/20">
                 <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                 </svg>
@@ -207,7 +264,7 @@
             <p class="text-slate-400">Sua assinatura expirou. Ative para continuar.</p>
         </div>
         
-        <div class="w-full max-w-sm space-y-4">
+        <div class="w-full max-w-sm space-y-4 animate-fade-in" style="animation-delay: 0.1s">
             <div>
                 <label class="text-slate-400 text-sm mb-3 block text-center font-medium">Código de Ativação</label>
                 <input type="text" id="codigo-ativacao" placeholder="XXXX-XXXX-XXXX" 
@@ -216,12 +273,12 @@
             </div>
             
             <button onclick="ativarSistema()" 
-                class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl transition-all active:scale-95 text-lg">
+                class="btn-ripple w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl transition-all active:scale-95 text-lg shadow-lg shadow-emerald-500/25">
                 <i class="fas fa-unlock mr-2"></i> Ativar Sistema
             </button>
             
             <a href="https://wa.me/5512988600188" target="_blank"
-                class="flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-xl transition-all">
+                class="btn-ripple flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-green-500/25">
                 <i class="fab fa-whatsapp text-xl"></i>
                 Suporte WhatsApp
             </a>
@@ -253,7 +310,7 @@
                         <span class="w-2 h-2 rounded-full bg-current animate-pulse"></span>
                         <span id="header-status-text">Ativo</span>
                     </span>
-                    <a href="https://wa.me/5512988600188" target="_blank" class="p-2 text-green-400 hover:text-green-300">
+                    <a href="https://wa.me/5512988600188" target="_blank" class="p-2 text-green-400 hover:text-green-300 transition-colors">
                         <i class="fab fa-whatsapp text-xl"></i>
                     </a>
                 </div>
@@ -265,30 +322,30 @@
 
             <!-- Tabs -->
             <div class="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
-                <button onclick="showTab('dashboard')" id="tab-btn-dashboard" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 text-white whitespace-nowrap">
+                <button onclick="showTab('dashboard')" id="tab-btn-dashboard" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 text-white whitespace-nowrap transition-all">
                     <i class="fas fa-chart-line mr-1"></i> Resumo
                 </button>
-                <button onclick="showTab('pedidos')" id="tab-btn-pedidos" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-slate-800 text-slate-400 whitespace-nowrap">
+                <button onclick="showTab('pedidos')" id="tab-btn-pedidos" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-slate-800 text-slate-400 whitespace-nowrap transition-all hover:bg-slate-700">
                     <i class="fas fa-shopping-bag mr-1"></i> Pedidos
                     <span id="badge-pedidos" class="ml-1 bg-red-500 text-white text-[10px] px-1.5 rounded-full hidden">0</span>
                 </button>
-                <button onclick="showTab('produtos')" id="tab-btn-produtos" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-slate-800 text-slate-400 whitespace-nowrap">
+                <button onclick="showTab('produtos')" id="tab-btn-produtos" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-slate-800 text-slate-400 whitespace-nowrap transition-all hover:bg-slate-700">
                     <i class="fas fa-box mr-1"></i> Produtos
                 </button>
-                <button onclick="showTab('status')" id="tab-btn-status" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-slate-800 text-slate-400 whitespace-nowrap">
+                <button onclick="showTab('status')" id="tab-btn-status" class="tab-btn px-4 py-2 rounded-xl text-sm font-medium bg-slate-800 text-slate-400 whitespace-nowrap transition-all hover:bg-slate-700">
                     <i class="fas fa-shield-alt mr-1"></i> Status
                 </button>
             </div>
 
             <!-- Dashboard -->
-            <div id="tab-dashboard" class="tab-content space-y-4">
+            <div id="tab-dashboard" class="tab-content space-y-4 animate-fade-in">
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="mobile-card rounded-xl p-4 text-center">
+                    <div class="mobile-card rounded-xl p-4 text-center hover:border-blue-500/30 transition-colors">
                         <p class="text-slate-400 text-xs mb-1">Hoje</p>
                         <p class="text-xl font-bold text-white" id="dash-hoje">R$ 0,00</p>
                         <p class="text-xs text-slate-500 mt-1"><span id="count-hoje">0</span> pedidos</p>
                     </div>
-                    <div class="mobile-card rounded-xl p-4 text-center">
+                    <div class="mobile-card rounded-xl p-4 text-center hover:border-amber-500/30 transition-colors">
                         <p class="text-slate-400 text-xs mb-1">Pendentes</p>
                         <p class="text-xl font-bold text-amber-400" id="dash-pendentes">0</p>
                         <p class="text-xs text-slate-500 mt-1">aguardando</p>
@@ -296,58 +353,91 @@
                 </div>
                 
                 <div class="mobile-card rounded-xl p-4">
-                    <h3 class="font-semibold mb-3 text-slate-300">Produtos Mais Vendidos</h3>
+                    <h3 class="font-semibold mb-3 text-slate-300 flex items-center gap-2">
+                        <i class="fas fa-trophy text-yellow-500"></i> Produtos Mais Vendidos
+                    </h3>
                     <div id="ranking-produtos" class="space-y-2">
-                        <p class="text-slate-500 text-sm text-center py-4">Sem dados</p>
+                        <div class="skeleton h-12 rounded-lg"></div>
+                        <div class="skeleton h-12 rounded-lg"></div>
+                        <div class="skeleton h-12 rounded-lg"></div>
                     </div>
                 </div>
             </div>
 
             <!-- Pedidos -->
-            <div id="tab-pedidos" class="tab-content hidden space-y-3">
+            <div id="tab-pedidos" class="tab-content hidden space-y-3 animate-fade-in">
                 <!-- Filtros -->
-                <div class="flex gap-2 overflow-x-auto pb-2">
-                    <button onclick="filtrarPedidos('todos')" class="filtro-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white" data-filter="todos">Todos</button>
-                    <button onclick="filtrarPedidos('pendente')" class="filtro-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400" data-filter="pendente">Pendentes</button>
-                    <button onclick="filtrarPedidos('recebido')" class="filtro-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400" data-filter="recebido">Recebidos</button>
+                <div class="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+                    <button onclick="filtrarPedidos('todos')" class="filtro-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white transition-all" data-filter="todos">Todos</button>
+                    <button onclick="filtrarPedidos('pendente')" class="filtro-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 transition-all hover:bg-slate-700" data-filter="pendente">Pendentes</button>
+                    <button onclick="filtrarPedidos('recebido')" class="filtro-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 transition-all hover:bg-slate-700" data-filter="recebido">Recebidos</button>
+                    <button onclick="filtrarPedidos('cancelado')" class="filtro-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 text-slate-400 transition-all hover:bg-slate-700" data-filter="cancelado">Cancelados</button>
                 </div>
                 
-                <div id="lista-pedidos" class="space-y-2"></div>
+                <div id="lista-pedidos" class="space-y-2">
+                    <div class="skeleton h-20 rounded-xl"></div>
+                    <div class="skeleton h-20 rounded-xl"></div>
+                    <div class="skeleton h-20 rounded-xl"></div>
+                </div>
             </div>
 
             <!-- Produtos -->
-            <div id="tab-produtos" class="tab-content hidden space-y-4">
-                <!-- Add Produto -->
+            <div id="tab-produtos" class="tab-content hidden space-y-4 animate-fade-in">
                 <div class="mobile-card rounded-xl p-4">
-                    <h3 class="font-semibold mb-3 text-slate-300">Novo Produto</h3>
+                    <h3 id="form-produto-titulo" class="font-semibold mb-3 text-slate-300">Novo Produto</h3>
+                    <input type="hidden" id="p-id">
                     <div class="space-y-3">
-                        <input id="p-nome" type="text" placeholder="Nome do produto" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white">
-                        <div class="grid grid-cols-2 gap-2">
-                            <input id="p-preco" type="number" step="0.01" placeholder="Preço R$" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white">
-                            <input id="p-desconto" type="number" step="0.01" placeholder="Desconto R$" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white">
+                        <div class="flex items-center gap-4 mb-2">
+                            <div id="p-preview" class="w-20 h-20 bg-slate-800 rounded-lg flex items-center justify-center text-slate-500 overflow-hidden border border-slate-700">
+                                <i class="fas fa-camera text-2xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <label class="block bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-medium py-2 px-3 rounded-lg cursor-pointer text-center border border-slate-600 transition-colors">
+                                    <i class="fas fa-upload mr-1"></i> Carregar/Tirar Foto
+                                    <input type="file" id="p-imagem-input" accept="image/*" class="hidden" onchange="previewImagem(event)">
+                                </label>
+                                <p class="text-[10px] text-slate-500 mt-1 text-center">JPG, PNG ou Câmera</p>
+                            </div>
                         </div>
+
+                        <input id="p-nome" type="text" placeholder="Nome do produto" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-blue-500 focus:outline-none transition-colors">
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <input id="p-preco" type="number" step="0.01" placeholder="Preço R$" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-blue-500 focus:outline-none transition-colors">
+                            <input id="p-desconto" type="number" step="0.01" placeholder="Desconto R$" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-blue-500 focus:outline-none transition-colors">
+                        </div>
+
                         <div class="flex gap-3 text-sm">
-                            <label class="flex items-center gap-2">
-                                <input id="p-destaque" type="checkbox" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input id="p-destaque" type="checkbox" class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-blue-500 focus:ring-blue-500">
                                 <span class="text-slate-400">Destaque</span>
                             </label>
-                            <label class="flex items-center gap-2">
-                                <input id="p-ativo" type="checkbox" checked class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-emerald-500">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input id="p-ativo" type="checkbox" checked class="w-4 h-4 rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500">
                                 <span class="text-slate-400">Visível</span>
                             </label>
                         </div>
-                        <button onclick="salvarProduto()" id="btn-salvar-prod" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg text-sm">
-                            <i class="fas fa-plus mr-1"></i> Cadastrar Produto
-                        </button>
+
+                        <div class="flex gap-2">
+                            <button onclick="salvarProduto()" id="btn-salvar-prod" class="btn-ripple flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg text-sm transition-all active:scale-95">
+                                <i class="fas fa-save mr-1"></i> Salvar Produto
+                            </button>
+                            <button onclick="limparFormProduto()" id="btn-cancelar-edit" class="hidden bg-slate-700 hover:bg-slate-600 text-white px-4 rounded-lg text-sm transition-colors">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
                 <!-- Lista Produtos -->
-                <div id="lista-produtos" class="space-y-2"></div>
+                <div id="lista-produtos" class="space-y-2">
+                    <div class="skeleton h-16 rounded-xl"></div>
+                    <div class="skeleton h-16 rounded-xl"></div>
+                </div>
             </div>
 
             <!-- ABA STATUS - Tudo sobre ativação aqui -->
-            <div id="tab-status" class="tab-content hidden space-y-4">
+            <div id="tab-status" class="tab-content hidden space-y-4 animate-fade-in">
                 
                 <!-- Card Principal - Dias Restantes -->
                 <div class="mobile-card rounded-2xl p-5">
@@ -368,11 +458,13 @@
 
                 <!-- Informações da Assinatura -->
                 <div class="mobile-card rounded-xl p-4">
-                    <h3 class="font-semibold text-slate-300 mb-3">Detalhes da Assinatura</h3>
+                    <h3 class="font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                        <i class="fas fa-info-circle text-blue-400"></i> Detalhes da Assinatura
+                    </h3>
                     <div class="space-y-3">
                         <div class="info-card flex justify-between items-center">
                             <span class="text-slate-400 text-sm">Código Atual</span>
-                            <span id="codigo-atual" class="text-white font-mono font-medium">---</span>
+                            <span id="codigo-atual" class="text-white font-mono font-medium text-xs">---</span>
                         </div>
                         <div class="info-card flex justify-between items-center">
                             <span class="text-slate-400 text-sm">Data de Expiração</span>
@@ -391,13 +483,15 @@
 
                 <!-- Ativar Novo Código -->
                 <div class="mobile-card rounded-xl p-4">
-                    <h3 class="font-semibold text-slate-300 mb-3">Ativar Novo Código</h3>
+                    <h3 class="font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                        <i class="fas fa-key text-emerald-400"></i> Ativar Novo Código
+                    </h3>
                     <p class="text-xs text-slate-500 mb-3">Digite um código de assinatura válido para renovar o acesso:</p>
                     <div class="flex gap-2">
                         <input type="text" id="novo-codigo" placeholder="XXXX-XXXX-XXXX" 
-                            class="ativacao-input flex-1 px-4 py-3 rounded-xl text-center"
+                            class="ativacao-input flex-1 px-4 py-3 rounded-xl text-center text-sm"
                             maxlength="14">
-                        <button onclick="ativarNovoCodigo()" class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 rounded-xl font-semibold transition-all active:scale-95">
+                        <button onclick="ativarNovoCodigo()" class="btn-ripple bg-emerald-500 hover:bg-emerald-600 text-white px-5 rounded-xl font-semibold transition-all active:scale-95">
                             <i class="fas fa-check"></i>
                         </button>
                     </div>
@@ -405,10 +499,12 @@
 
                 <!-- Suporte -->
                 <div class="mobile-card rounded-xl p-4">
-                    <h3 class="font-semibold text-slate-300 mb-3">Precisa de Ajuda?</h3>
+                    <h3 class="font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                        <i class="fas fa-headset text-purple-400"></i> Precisa de Ajuda?
+                    </h3>
                     <p class="text-sm text-slate-400 mb-3">Entre em contato com o suporte para renovar sua assinatura:</p>
                     <a href="https://wa.me/5512988600188" target="_blank"
-                        class="flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-xl transition-all">
+                        class="btn-ripple flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-green-500/25">
                         <i class="fab fa-whatsapp text-lg"></i>
                         Falar com Suporte
                     </a>
@@ -419,7 +515,7 @@
         </main>
 
         <!-- Modal Pedido -->
-        <div id="modal-overlay" class="fixed inset-0 bg-black/60 z-50 hidden opacity-0 transition-opacity" onclick="fecharModal()"></div>
+        <div id="modal-overlay" class="fixed inset-0 bg-black/60 z-50 hidden opacity-0 transition-opacity duration-300" onclick="fecharModal()"></div>
         
         <div id="modal-pedido" class="modal-sheet">
             <div class="w-12 h-1 bg-slate-600 rounded-full mx-auto mt-3 mb-2"></div>
@@ -429,25 +525,25 @@
                     <h3 class="text-lg font-bold">Pedido #<span id="modal-id"></span></h3>
                     <p class="text-xs text-slate-400" id="modal-data"></p>
                 </div>
-                <button onclick="fecharModal()" class="p-2 text-slate-400">
+                <button onclick="fecharModal()" class="p-2 text-slate-400 hover:text-white transition-colors">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             
             <div class="flex-1 overflow-y-auto px-5 py-4 space-y-4">
                 <div>
-                    <p class="text-xs text-slate-500 uppercase">Cliente</p>
+                    <p class="text-xs text-slate-500 uppercase tracking-wider">Cliente</p>
                     <p class="text-lg font-semibold" id="modal-cliente"></p>
                     <p class="text-sm text-slate-400" id="modal-whats"></p>
                 </div>
                 
                 <div>
-                    <p class="text-xs text-slate-500 uppercase">Endereço</p>
+                    <p class="text-xs text-slate-500 uppercase tracking-wider">Endereço</p>
                     <p class="text-sm text-slate-300" id="modal-endereco"></p>
                 </div>
 
                 <div class="bg-slate-800/50 rounded-xl p-4">
-                    <p class="text-xs text-slate-500 uppercase mb-2">Itens</p>
+                    <p class="text-xs text-slate-500 uppercase tracking-wider mb-2">Itens</p>
                     <div id="modal-itens" class="space-y-1"></div>
                     <div class="border-t border-slate-700 pt-2 mt-2 flex justify-between items-center">
                         <span class="text-slate-400">Total</span>
@@ -457,18 +553,18 @@
             </div>
 
             <div class="px-5 py-4 border-t border-slate-800 space-y-2 bg-slate-900/50">
-                <button onclick="verCupom()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2">
+                <button onclick="verCupom()" class="btn-ripple w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-all active:scale-95">
                     <i class="fas fa-receipt"></i> Ver Cupom
                 </button>
                 
                 <div class="grid grid-cols-3 gap-2">
-                    <button onclick="atualizarStatus('recebido')" class="bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl text-sm font-medium">
+                    <button onclick="atualizarStatus('recebido')" class="btn-ripple bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-xl text-sm font-medium transition-all active:scale-95">
                         <i class="fas fa-check mr-1"></i> Receber
                     </button>
-                    <button onclick="atualizarStatus('pendente')" class="bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl text-sm font-medium">
+                    <button onclick="atualizarStatus('pendente')" class="btn-ripple bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-xl text-sm font-medium transition-all active:scale-95">
                         <i class="fas fa-clock mr-1"></i> Pendente
                     </button>
-                    <button onclick="atualizarStatus('cancelado')" class="bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl text-sm font-medium">
+                    <button onclick="atualizarStatus('cancelado')" class="btn-ripple bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl text-sm font-medium transition-all active:scale-95">
                         <i class="fas fa-times mr-1"></i> Cancelar
                     </button>
                 </div>
@@ -476,17 +572,19 @@
         </div>
 
         <!-- Modal Cupom -->
-        <div id="modal-cupom-overlay" class="fixed inset-0 bg-black/80 z-60 hidden flex items-center justify-center p-4" onclick="fecharCupom(event)">
-            <div class="bg-white rounded-2xl max-w-sm w-full max-h-[90vh] overflow-hidden" onclick="event.stopPropagation()">
+        <div id="modal-cupom-overlay" class="fixed inset-0 bg-black/80 z-[70] hidden flex items-center justify-center p-4 opacity-0 transition-opacity duration-300" onclick="fecharCupom(event)">
+            <div class="bg-white rounded-2xl max-w-sm w-full max-h-[90vh] overflow-hidden transform scale-95 transition-transform duration-300" id="cupom-content" onclick="event.stopPropagation()">
                 <div class="p-4 border-b flex justify-between items-center bg-slate-50">
-                    <h3 class="font-bold text-lg text-slate-900">Cupom Fiscal</h3>
-                    <button onclick="fecharCupom()" class="p-2 text-slate-400 hover:text-slate-600">
+                    <h3 class="font-bold text-lg text-slate-900 flex items-center gap-2">
+                        <i class="fas fa-receipt text-blue-500"></i> Cupom Fiscal
+                    </h3>
+                    <button onclick="fecharCupom()" class="p-2 text-slate-400 hover:text-slate-600 transition-colors">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
                 
                 <div class="p-4 overflow-y-auto max-h-[60vh] bg-slate-100">
-                    <div class="receipt-elegant rounded-xl p-6 space-y-4 bg-white">
+                    <div class="receipt-elegant rounded-xl p-6 space-y-4 bg-white shadow-lg">
                         <div class="text-center border-b-2 border-dashed border-slate-300 pb-4">
                             <h2 class="text-2xl font-bold text-slate-900">BILL RIZZO</h2>
                             <p class="text-xs text-slate-500">Loja Oficial</p>
@@ -494,7 +592,7 @@
                         </div>
                         
                         <div>
-                            <p class="text-xs text-slate-500 uppercase">Cliente</p>
+                            <p class="text-xs text-slate-500 uppercase tracking-wider">Cliente</p>
                             <p class="font-semibold text-slate-900" id="cupom-cliente"></p>
                             <p class="text-sm text-slate-600" id="cupom-telefone"></p>
                         </div>
@@ -514,10 +612,10 @@
                 </div>
                 
                 <div class="p-4 bg-white border-t grid grid-cols-2 gap-3">
-                    <button onclick="compartilharCupom()" class="flex items-center justify-center gap-2 bg-slate-900 text-white py-3 rounded-xl font-semibold">
+                    <button onclick="compartilharCupom()" class="btn-ripple flex items-center justify-center gap-2 bg-slate-900 text-white py-3 rounded-xl font-semibold transition-all active:scale-95">
                         <i class="fas fa-share-alt"></i> Compartilhar
                     </button>
-                    <button onclick="imprimirCupom()" class="flex items-center justify-center gap-2 bg-emerald-500 text-white py-3 rounded-xl font-semibold">
+                    <button onclick="imprimirCupom()" class="btn-ripple flex items-center justify-center gap-2 bg-emerald-500 text-white py-3 rounded-xl font-semibold transition-all active:scale-95">
                         <i class="fas fa-print"></i> Imprimir
                     </button>
                 </div>
@@ -529,6 +627,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC4g-r04tQ1PC72FpuNXJ8r7-1gTyD0CMc",
@@ -541,6 +640,7 @@
         
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const storage = getStorage(app);
 
         let pedidos = [];
         let produtos = [];
@@ -548,39 +648,130 @@
         let filtroAtual = 'todos';
         let assinaturaAtual = null;
         let sistemaAtivo = false;
+        let unsubscribePedidos = null;
+        let unsubscribeProdutos = null;
+        let unsubscribeAssinaturas = null;
 
         // Verificar assinatura
         function verificarAssinatura() {
-            const q = query(collection(db, "assinaturas"), orderBy("dataFim", "desc"));
-            
-            onSnapshot(q, (snapshot) => {
-                let ativa = false;
-                let diasRestantes = 0;
-                let codigo = '---';
-                let dataFim = null;
-                let plano = '---';
-                let cliente = '---';
+            try {
+                const q = query(collection(db, "assinaturas"), orderBy("dataFim", "desc"));
                 
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    const hoje = new Date();
-                    const fim = data.dataFim?.toDate();
+                unsubscribeAssinaturas = onSnapshot(q, (snapshot) => {
+                    let ativa = false;
+                    let diasRestantes = 0;
+                    let codigo = '---';
+                    let dataFim = null;
+                    let plano = '---';
+                    let cliente = '---';
                     
-                    if (fim && fim > hoje) {
-                        ativa = true;
-                        diasRestantes = Math.ceil((fim - hoje) / (1000 * 60 * 60 * 24));
-                        codigo = data.codigo;
-                        dataFim = fim;
-                        plano = data.plano || '---';
-                        cliente = data.cliente || '---';
-                        assinaturaAtual = { id: doc.id, ...data };
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const hoje = new Date();
+                        const fim = data.dataFim?.toDate();
+                        
+                        if (fim && fim > hoje) {
+                            ativa = true;
+                            diasRestantes = Math.ceil((fim - hoje) / (1000 * 60 * 60 * 24));
+                            codigo = data.codigo;
+                            dataFim = fim;
+                            plano = data.plano || '---';
+                            cliente = data.cliente || '---';
+                            assinaturaAtual = { id: doc.id, ...data };
+                        }
+                    });
+                    
+                    const estadoAnterior = sistemaAtivo;
+                    sistemaAtivo = ativa;
+                    
+                    atualizarUIAssinatura(ativa, diasRestantes, codigo, dataFim, plano, cliente);
+                    
+                    // Só atualiza a tela se houve mudança de estado
+                    if (estadoAnterior !== ativa) {
+                        atualizarTelaBloqueio();
                     }
+                    
+                    // Se ativou, inicia listeners
+                    if (ativa && !estadoAnterior) {
+                        iniciarListeners();
+                    }
+                }, (error) => {
+                    console.error("Erro ao verificar assinatura:", error);
+                    showToast('Erro de conexão!', 'error');
                 });
+            } catch (error) {
+                console.error("Erro ao configurar listener de assinaturas:", error);
+            }
+        }
+
+        function iniciarListeners() {
+            // Listener de pedidos
+            if (!unsubscribePedidos) {
+                unsubscribePedidos = onSnapshot(
+                    query(collection(db, "pedidos"), orderBy("data", "desc")),
+                    (snapshot) => {
+                        pedidos = [];
+                        snapshot.forEach(doc => pedidos.push({ id: doc.id, ...doc.data() }));
+                        atualizarDashboard();
+                        renderizarPedidos();
+                    },
+                    (error) => console.error("Erro pedidos:", error)
+                );
+            }
+
+            // Listener de produtos
+            if (!unsubscribeProdutos) {
+                unsubscribeProdutos = onSnapshot(
+                    query(collection(db, "produtos"), orderBy("vendas", "desc")),
+                    (snapshot) => {
+                        produtos = [];
+                        const container = document.getElementById('lista-produtos');
+                        container.innerHTML = '';
+                        
+                        snapshot.forEach(docSnap => {
+                            const p = { id: docSnap.id, ...docSnap.data() };
+                            produtos.push(p);
+                            
+                            const precoFinal = p.preco - (p.desconto || 0);
+                            
+                            const div = document.createElement('div');
+                            div.className = 'mobile-card rounded-xl p-3 flex items-center gap-3 animate-fade-in';
+                            div.innerHTML = `
+                                ${p.imagem ? 
+                                    `<img src="${p.imagem}" loading="lazy" class="w-12 h-12 rounded-lg object-cover bg-slate-800 shadow-lg">` : 
+                                    `<div class="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center text-slate-600 border border-slate-700">
+                                        <i class="fas fa-image"></i>
+                                    </div>`
+                                }
+                                
+                                <div class="flex-1 min-w-0">
+                                    <h4 class="font-medium text-white text-sm truncate">${p.nome}</h4>
+                                    <p class="text-xs text-slate-400">
+                                        R$ ${precoFinal.toFixed(2)} 
+                                        ${p.desconto > 0 ? `<span class="line-through text-[10px] text-slate-600 ml-1">R$ ${p.preco.toFixed(2)}</span>` : ''}
+                                    </p>
+                                </div>
                 
-                sistemaAtivo = ativa;
-                atualizarUIAssinatura(ativa, diasRestantes, codigo, dataFim, plano, cliente);
-                atualizarTelaBloqueio();
-            });
+                                <div class="flex items-center gap-2">
+                                    <button onclick="prepararEdicao('${p.id}')" 
+                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors">
+                                        <i class="fas fa-edit text-xs"></i>
+                                    </button>
+                
+                                    <button onclick="toggleProduto('${p.id}', ${p.ativo !== false})" 
+                                        class="px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${p.ativo !== false ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-700 text-slate-400 border border-slate-600'}">
+                                        ${p.ativo !== false ? 'ON' : 'OFF'}
+                                    </button>
+                                </div>
+                            `;
+                            container.appendChild(div);
+                        });
+                        
+                        atualizarDashboard();
+                    },
+                    (error) => console.error("Erro produtos:", error)
+                );
+            }
         }
 
         function atualizarTelaBloqueio() {
@@ -589,12 +780,26 @@
             
             if (sistemaAtivo) {
                 lockScreen.classList.remove('active');
-                mainContent.classList.add('active');
+                setTimeout(() => {
+                    mainContent.classList.add('active');
+                }, 100);
                 document.body.style.overflow = '';
             } else {
-                lockScreen.classList.add('active');
                 mainContent.classList.remove('active');
+                setTimeout(() => {
+                    lockScreen.classList.add('active');
+                }, 100);
                 document.body.style.overflow = 'hidden';
+                
+                // Remove listeners quando bloqueado
+                if (unsubscribePedidos) {
+                    unsubscribePedidos();
+                    unsubscribePedidos = null;
+                }
+                if (unsubscribeProdutos) {
+                    unsubscribeProdutos();
+                    unsubscribeProdutos = null;
+                }
             }
         }
 
@@ -627,8 +832,11 @@
                 clienteEl.innerText = cliente;
                 
                 container.classList.remove('warning', 'danger');
-                if (dias <= 7) container.classList.add('danger');
-                else if (dias <= 15) container.classList.add('warning');
+                if (dias <= 3) {
+                    container.classList.add('danger');
+                } else if (dias <= 7) {
+                    container.classList.add('warning');
+                }
             } else {
                 // Header
                 headerBadge.className = 'header-status inativo';
@@ -642,36 +850,58 @@
                 expiraEl.innerText = '---';
                 planoEl.innerText = '---';
                 clienteEl.innerText = '---';
+                container.classList.remove('warning');
                 container.classList.add('danger');
             }
         }
 
         window.ativarSistema = async () => {
-            const codigo = document.getElementById('codigo-ativacao').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const input = document.getElementById('codigo-ativacao');
+            const codigo = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
             
             if (codigo.length < 12) {
-                showToast('Código inválido!', 'error');
+                showToast('Código inválido! Digite 12 caracteres.', 'error');
+                input.focus();
                 return;
             }
 
+            const btn = document.querySelector('#lock-screen button');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Verificando...';
+
             try {
-                const q = query(collection(db, "assinaturas"), where("codigo", "==", codigo), where("usada", "==", false));
+                const q = query(collection(db, "assinaturas"), where("codigo", "==", codigo));
                 const snapshot = await getDocs(q);
                 
                 if (snapshot.empty) {
-                    showToast('Código não encontrado ou já usado!', 'error');
+                    showToast('Código não encontrado!', 'error');
                     return;
                 }
                 
-                const docRef = snapshot.docs[0].ref;
-                await updateDoc(docRef, { usada: true, dataAtivacao: new Date() });
+                const docData = snapshot.docs[0];
+                const data = docData.data();
+                
+                if (data.usada) {
+                    showToast('Código já foi utilizado!', 'error');
+                    return;
+                }
+                
+                await updateDoc(doc(db, "assinaturas", docData.id), { 
+                    usada: true, 
+                    dataAtivacao: new Date(),
+                    ativadoEm: new Date().toISOString()
+                });
                 
                 showToast('Sistema ativado com sucesso!');
-                sistemaAtivo = true;
-                atualizarTelaBloqueio();
+                input.value = '';
                 
             } catch (error) {
-                showToast('Erro ao ativar!', 'error');
+                console.error(error);
+                showToast('Erro ao ativar! Tente novamente.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
             }
         };
 
@@ -684,30 +914,55 @@
                 return;
             }
 
+            const btn = input.nextElementSibling;
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
             try {
-                const q = query(collection(db, "assinaturas"), where("codigo", "==", codigo), where("usada", "==", false));
+                const q = query(collection(db, "assinaturas"), where("codigo", "==", codigo));
                 const snapshot = await getDocs(q);
                 
                 if (snapshot.empty) {
-                    showToast('Código não encontrado ou já usado!', 'error');
+                    showToast('Código não encontrado!', 'error');
                     return;
                 }
                 
-                const docRef = snapshot.docs[0].ref;
-                await updateDoc(docRef, { usada: true, dataAtivacao: new Date() });
+                const docData = snapshot.docs[0];
+                const data = docData.data();
+                
+                if (data.usada) {
+                    showToast('Código já utilizado!', 'error');
+                    return;
+                }
+                
+                await updateDoc(doc(db, "assinaturas", docData.id), { 
+                    usada: true, 
+                    dataAtivacao: new Date() 
+                });
                 
                 input.value = '';
-                showToast('Sistema ativado!');
+                showToast('Sistema renovado com sucesso!');
                 
             } catch (error) {
+                console.error(error);
                 showToast('Erro ao ativar!', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
             }
         };
 
         // Tabs
         window.showTab = (tab) => {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.querySelectorAll('.tab-content').forEach(t => {
+                t.classList.add('hidden');
+                t.classList.remove('animate-fade-in');
+            });
+            
+            const activeTab = document.getElementById(`tab-${tab}`);
+            activeTab.classList.remove('hidden');
+            activeTab.classList.add('animate-fade-in');
             
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('bg-blue-600', 'text-white');
@@ -719,49 +974,13 @@
             activeBtn.classList.add('bg-blue-600', 'text-white');
         };
 
-        // Dashboard
-        onSnapshot(query(collection(db, "pedidos"), orderBy("data", "desc")), (snapshot) => {
-            pedidos = [];
-            snapshot.forEach(doc => pedidos.push({ id: doc.id, ...doc.data() }));
-            atualizarDashboard();
-            renderizarPedidos();
-        });
-
-        onSnapshot(query(collection(db, "produtos"), orderBy("vendas", "desc")), (snapshot) => {
-            produtos = [];
-            const container = document.getElementById('lista-produtos');
-            container.innerHTML = '';
-            
-            snapshot.forEach(doc => {
-                const p = { id: doc.id, ...doc.data() };
-                produtos.push(p);
-                
-                const precoFinal = p.preco - (p.desconto || 0);
-                container.innerHTML += `
-                    <div class="mobile-card rounded-xl p-3 flex items-center gap-3">
-                        ${p.imagem ? `<img src="${p.imagem}" class="w-12 h-12 rounded-lg object-cover bg-slate-800">` : 
-                          `<div class="w-12 h-12 rounded-lg bg-slate-800 flex items-center justify-center text-slate-600"><i class="fas fa-image"></i></div>`}
-                        <div class="flex-1 min-w-0">
-                            <h4 class="font-medium text-white text-sm truncate">${p.nome}</h4>
-                            <p class="text-xs text-slate-400">R$ ${precoFinal.toFixed(2)} ${p.desconto > 0 ? `<span class="line-through text-slate-600">R$ ${p.preco.toFixed(2)}</span>` : ''}</p>
-                        </div>
-                        <button onclick="toggleProduto('${doc.id}', ${p.ativo !== false})" 
-                            class="px-3 py-1.5 rounded-lg text-xs font-medium ${p.ativo !== false ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}">
-                            ${p.ativo !== false ? 'Visível' : 'Oculto'}
-                        </button>
-                    </div>`;
-            });
-            
-            atualizarDashboard();
-        });
-
         function atualizarDashboard() {
             const hoje = new Date();
             hoje.setHours(0, 0, 0, 0);
             
             const pedidosHoje = pedidos.filter(p => {
                 const data = p.data?.toDate();
-                return data >= hoje && p.status !== 'cancelado';
+                return data && data >= hoje && p.status !== 'cancelado';
             });
             
             const pendentes = pedidos.filter(p => p.status === 'pendente').length;
@@ -779,25 +998,27 @@
             const ranking = {};
             pedidos.forEach(p => {
                 if (p.status === 'cancelado') return;
-                (p.itens || []).forEach(i => ranking[i.nome] = (ranking[i.nome] || 0) + 1);
+                (p.itens || []).forEach(i => {
+                    ranking[i.nome] = (ranking[i.nome] || 0) + 1;
+                });
             });
             
             const top = Object.entries(ranking).sort((a, b) => b[1] - a[1]).slice(0, 5);
             const rankingContainer = document.getElementById('ranking-produtos');
             
             if (top.length === 0) {
-                rankingContainer.innerHTML = '<p class="text-slate-500 text-sm text-center py-4">Sem dados</p>';
+                rankingContainer.innerHTML = '<p class="text-slate-500 text-sm text-center py-4">Sem dados suficientes</p>';
             } else {
                 rankingContainer.innerHTML = top.map(([nome, qtd], i) => `
-                    <div class="flex items-center gap-3">
-                        <span class="text-lg font-bold text-slate-700 w-6">${i + 1}</span>
+                    <div class="flex items-center gap-3 animate-fade-in" style="animation-delay: ${i * 0.05}s">
+                        <span class="text-lg font-bold ${i === 0 ? 'text-yellow-500' : i === 1 ? 'text-slate-400' : i === 2 ? 'text-amber-600' : 'text-slate-700'} w-6">${i + 1}</span>
                         <div class="flex-1">
                             <div class="flex justify-between text-sm mb-1">
-                                <span class="text-slate-300">${nome}</span>
-                                <span class="text-slate-500">${qtd}</span>
+                                <span class="text-slate-300 truncate">${nome}</span>
+                                <span class="text-slate-500 font-medium">${qtd}</span>
                             </div>
                             <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                <div class="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full" style="width: ${(qtd / top[0][1]) * 100}%"></div>
+                                <div class="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full transition-all duration-500" style="width: ${(qtd / top[0][1]) * 100}%"></div>
                             </div>
                         </div>
                     </div>
@@ -829,25 +1050,41 @@
             }
             
             if (filtrados.length === 0) {
-                container.innerHTML = '<p class="text-slate-500 text-center py-8">Nenhum pedido</p>';
+                container.innerHTML = `
+                    <div class="text-center py-12 text-slate-500">
+                        <i class="fas fa-inbox text-4xl mb-3 opacity-50"></i>
+                        <p>Nenhum pedido encontrado</p>
+                    </div>
+                `;
                 return;
             }
             
-            container.innerHTML = filtrados.map(p => {
+            container.innerHTML = filtrados.map((p, index) => {
                 const data = p.data?.toDate() || new Date();
                 const dataStr = data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-                const statusColors = { pendente: 'border-l-amber-500', recebido: 'border-l-emerald-500', cancelado: 'border-l-red-500' };
+                const statusColors = { 
+                    pendente: 'border-l-amber-500 bg-amber-500/5', 
+                    recebido: 'border-l-emerald-500 bg-emerald-500/5', 
+                    cancelado: 'border-l-red-500 bg-red-500/5' 
+                };
+                const statusLabels = {
+                    pendente: 'Pendente',
+                    recebido: 'Recebido',
+                    cancelado: 'Cancelado'
+                };
                 
                 return `
-                    <div onclick="abrirPedido('${p.id}')" class="mobile-card rounded-xl p-4 border-l-4 ${statusColors[p.status || 'pendente']} active:scale-[0.98] transition-transform cursor-pointer">
+                    <div onclick="abrirPedido('${p.id}')" 
+                        class="mobile-card rounded-xl p-4 border-l-4 ${statusColors[p.status || 'pendente']} active:scale-[0.98] transition-all cursor-pointer hover:bg-slate-800/80 animate-fade-in"
+                        style="animation-delay: ${index * 0.05}s">
                         <div class="flex justify-between items-start">
-                            <div>
-                                <h4 class="font-semibold text-white">${p.cliente}</h4>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="font-semibold text-white truncate">${p.cliente}</h4>
                                 <p class="text-xs text-slate-400">${dataStr}</p>
                             </div>
-                            <div class="text-right">
+                            <div class="text-right ml-2">
                                 <p class="font-bold text-emerald-400">R$ ${(p.totalFinal || p.total || 0).toFixed(2)}</p>
-                                <span class="text-[10px] uppercase ${p.status === 'recebido' ? 'text-emerald-400' : p.status === 'cancelado' ? 'text-red-400' : 'text-amber-400'}">${p.status || 'pendente'}</span>
+                                <span class="text-[10px] uppercase font-medium ${p.status === 'recebido' ? 'text-emerald-400' : p.status === 'cancelado' ? 'text-red-400' : 'text-amber-400'}">${statusLabels[p.status] || 'Pendente'}</span>
                             </div>
                         </div>
                         <p class="text-xs text-slate-500 mt-2 truncate">${(p.itens || []).length} itens • ${p.endereco || 'Sem endereço'}</p>
@@ -876,32 +1113,52 @@
             });
             
             document.getElementById('modal-itens').innerHTML = Object.values(grouped).map(item => `
-                <div class="flex justify-between text-sm">
+                <div class="flex justify-between text-sm py-1">
                     <span class="text-slate-300">${item.qtd}x ${item.nome}</span>
                     <span class="text-slate-400">R$ ${(item.preco * item.qtd).toFixed(2)}</span>
                 </div>
             `).join('');
             
-            document.getElementById('modal-overlay').classList.remove('hidden');
-            setTimeout(() => document.getElementById('modal-overlay').classList.remove('opacity-0'), 10);
+            const overlay = document.getElementById('modal-overlay');
+            overlay.classList.remove('hidden');
+            setTimeout(() => overlay.classList.remove('opacity-0'), 10);
             document.getElementById('modal-pedido').classList.add('active');
         };
 
         window.fecharModal = () => {
             document.getElementById('modal-pedido').classList.remove('active');
-            document.getElementById('modal-overlay').classList.add('opacity-0');
-            setTimeout(() => document.getElementById('modal-overlay').classList.add('hidden'), 300);
+            const overlay = document.getElementById('modal-overlay');
+            overlay.classList.add('opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 300);
         };
 
         window.atualizarStatus = async (status) => {
             if (!pedidoAtual) return;
             
+            const btn = event.target.closest('button');
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
             try {
-                await updateDoc(doc(db, "pedidos", pedidoAtual.id), { status });
-                showToast(`Pedido ${status === 'recebido' ? 'recebido' : status === 'cancelado' ? 'cancelado' : 'pendente'}!`);
+                await updateDoc(doc(db, "pedidos", pedidoAtual.id), { 
+                    status,
+                    atualizadoEm: new Date()
+                });
+                
+                const statusMsg = {
+                    recebido: 'marcado como recebido',
+                    cancelado: 'cancelado',
+                    pendente: 'marcado como pendente'
+                };
+                
+                showToast(`Pedido ${statusMsg[status]}!`);
                 fecharModal();
             } catch (error) {
+                console.error(error);
                 showToast('Erro ao atualizar!', 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
             }
         };
 
@@ -920,7 +1177,7 @@
             });
             
             document.getElementById('cupom-itens').innerHTML = Object.values(grouped).map(item => `
-                <div class="flex justify-between text-sm">
+                <div class="flex justify-between text-sm py-1">
                     <span class="text-slate-700">${item.qtd}x ${item.nome}</span>
                     <span class="font-medium">R$ ${(item.preco * item.qtd).toFixed(2)}</span>
                 </div>
@@ -928,21 +1185,40 @@
             
             document.getElementById('cupom-total').innerText = `R$ ${(pedidoAtual.totalFinal || pedidoAtual.total || 0).toFixed(2)}`;
             
-            document.getElementById('modal-cupom-overlay').classList.remove('hidden');
+            const overlay = document.getElementById('modal-cupom-overlay');
+            const content = document.getElementById('cupom-content');
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            }, 10);
         };
 
         window.fecharCupom = (e) => {
             if (!e || e.target.id === 'modal-cupom-overlay') {
-                document.getElementById('modal-cupom-overlay').classList.add('hidden');
+                const overlay = document.getElementById('modal-cupom-overlay');
+                const content = document.getElementById('cupom-content');
+                overlay.classList.add('opacity-0');
+                content.classList.remove('scale-100');
+                content.classList.add('scale-95');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
             }
         };
 
         window.compartilharCupom = async () => {
-            const texto = document.querySelector('.receipt-elegant').innerText;
+            const texto = `*CUPOM FISCAL - BILL RIZZO*\n\n` +
+                `Cliente: ${pedidoAtual.cliente}\n` +
+                `Data: ${new Date().toLocaleString('pt-BR')}\n\n` +
+                `Itens:\n${(pedidoAtual.itens || []).map(i => `- ${i.nome}: R$ ${i.preco.toFixed(2)}`).join('\n')}\n\n` +
+                `*Total: R$ ${(pedidoAtual.totalFinal || pedidoAtual.total || 0).toFixed(2)}*`;
+                
             if (navigator.share) {
-                try { await navigator.share({ title: 'Cupom Bill Rizzo', text: texto }); } catch (e) {}
+                try { 
+                    await navigator.share({ title: 'Cupom Bill Rizzo', text: texto }); 
+                } catch (e) {}
             } else {
-                navigator.clipboard.writeText(texto).then(() => showToast('Copiado!'));
+                navigator.clipboard.writeText(texto).then(() => showToast('Cupom copiado!'));
             }
         };
 
@@ -950,8 +1226,10 @@
 
         // Produtos
         window.salvarProduto = async () => {
+            const id = document.getElementById('p-id').value;
             const nome = document.getElementById('p-nome').value.trim();
             const preco = Number(document.getElementById('p-preco').value);
+            const fileInput = document.getElementById('p-imagem-input');
             
             if (!nome || !preco) {
                 showToast('Preencha nome e preço!', 'error');
@@ -959,48 +1237,169 @@
             }
 
             const btn = document.getElementById('btn-salvar-prod');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Salvando...';
             btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Processando...';
 
             try {
-                await addDoc(collection(db, "produtos"), {
+                let urlImagem = null;
+                
+                // Se houver nova imagem, faz o upload
+                if (fileInput.files[0]) {
+                    const file = fileInput.files[0];
+                    
+                    // Validação de tamanho (max 5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                        showToast('Imagem muito grande! Máx 5MB', 'error');
+                        return;
+                    }
+                    
+                    const storageRef = ref(storage, `produtos/${Date.now()}_${file.name}`);
+                    const snapshot = await uploadBytes(storageRef, file);
+                    urlImagem = await getDownloadURL(snapshot.ref);
+                }
+
+                const dados = {
                     nome,
                     preco,
                     desconto: Number(document.getElementById('p-desconto').value) || 0,
                     destaque: document.getElementById('p-destaque').checked,
                     ativo: document.getElementById('p-ativo').checked,
-                    vendas: 0,
-                    dataCriacao: new Date()
-                });
-                
-                document.getElementById('p-nome').value = '';
-                document.getElementById('p-preco').value = '';
-                document.getElementById('p-desconto').value = '';
-                showToast('Produto cadastrado!');
+                };
+
+                if (urlImagem) dados.imagem = urlImagem;
+
+                if (id) {
+                    // Modo Edição
+                    await updateDoc(doc(db, "produtos", id), dados);
+                    showToast('Produto atualizado com sucesso!');
+                } else {
+                    // Modo Cadastro
+                    dados.vendas = 0;
+                    dados.dataCriacao = new Date();
+                    await addDoc(collection(db, "produtos"), dados);
+                    showToast('Produto cadastrado com sucesso!');
+                }
+
+                limparFormProduto();
             } catch (error) {
-                showToast('Erro ao salvar!', 'error');
+                console.error(error);
+                showToast('Erro ao salvar! Tente novamente.', 'error');
             } finally {
-                btn.innerHTML = '<i class="fas fa-plus mr-1"></i> Cadastrar Produto';
                 btn.disabled = false;
+                btn.innerHTML = id ? '<i class="fas fa-save mr-1"></i> Atualizar Produto' : '<i class="fas fa-save mr-1"></i> Salvar Produto';
             }
         };
 
         window.toggleProduto = async (id, atual) => {
-            await updateDoc(doc(db, "produtos", id), { ativo: !atual });
-            showToast(atual ? 'Produto oculto' : 'Produto visível');
+            try {
+                await updateDoc(doc(db, "produtos", id), { ativo: !atual });
+                showToast(atual ? 'Produto oculto' : 'Produto visível');
+            } catch (error) {
+                showToast('Erro ao alterar visibilidade!', 'error');
+            }
+        };
+        
+        window.previewImagem = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Validação de tipo
+            if (!file.type.startsWith('image/')) {
+                showToast('Selecione uma imagem válida!', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = () => {
+                const preview = document.getElementById('p-preview');
+                preview.innerHTML = `<img src="${reader.result}" class="w-full h-full object-cover">`;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.prepararEdicao = (id) => {
+            const p = produtos.find(item => item.id === id);
+            if (!p) return;
+
+            document.getElementById('p-id').value = p.id;
+            document.getElementById('p-nome').value = p.nome;
+            document.getElementById('p-preco').value = p.preco;
+            document.getElementById('p-desconto').value = p.desconto || 0;
+            document.getElementById('p-destaque').checked = p.destaque || false;
+            document.getElementById('p-ativo').checked = p.ativo !== false;
+            
+            document.getElementById('form-produto-titulo').innerText = "Editando Produto";
+            document.getElementById('btn-salvar-prod').innerHTML = '<i class="fas fa-save mr-1"></i> Atualizar Produto';
+            document.getElementById('btn-cancelar-edit').classList.remove('hidden');
+
+            if (p.imagem) {
+                document.getElementById('p-preview').innerHTML = `<img src="${p.imagem}" class="w-full h-full object-cover">`;
+            } else {
+                document.getElementById('p-preview').innerHTML = '<i class="fas fa-camera text-2xl"></i>';
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            showTab('produtos');
+        };
+
+        window.limparFormProduto = () => {
+            document.getElementById('p-id').value = '';
+            document.getElementById('p-nome').value = '';
+            document.getElementById('p-preco').value = '';
+            document.getElementById('p-desconto').value = '';
+            document.getElementById('p-imagem-input').value = '';
+            document.getElementById('p-preview').innerHTML = '<i class="fas fa-camera text-2xl"></i>';
+            document.getElementById('form-produto-titulo').innerText = "Novo Produto";
+            document.getElementById('btn-salvar-prod').innerHTML = '<i class="fas fa-save mr-1"></i> Salvar Produto';
+            document.getElementById('btn-cancelar-edit').classList.add('hidden');
         };
 
         function showToast(msg, type = 'success') {
             const toast = document.getElementById('toast');
             toast.innerText = msg;
-            toast.className = `toast ${type === 'error' ? 'error' : ''}`;
+            toast.className = `toast ${type === 'error' ? 'error' : type === 'warning' ? 'warning' : ''}`;
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2500);
+            setTimeout(() => toast.classList.remove('show'), 3000);
         }
+
+        // Formatação automática do código de ativação
+        document.getElementById('codigo-ativacao')?.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+            if (value.length > 12) value = value.slice(0, 12);
+            
+            // Formata como XXXX-XXXX-XXXX
+            if (value.length > 8) {
+                value = value.slice(0, 4) + '-' + value.slice(4, 8) + '-' + value.slice(8);
+            } else if (value.length > 4) {
+                value = value.slice(0, 4) + '-' + value.slice(4);
+            }
+            
+            e.target.value = value;
+        });
+
+        document.getElementById('novo-codigo')?.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+            if (value.length > 12) value = value.slice(0, 12);
+            
+            if (value.length > 8) {
+                value = value.slice(0, 4) + '-' + value.slice(4, 8) + '-' + value.slice(8);
+            } else if (value.length > 4) {
+                value = value.slice(0, 4) + '-' + value.slice(4);
+            }
+            
+            e.target.value = value;
+        });
 
         // Inicializar
         verificarAssinatura();
         showTab('dashboard');
+
+        // Cleanup ao sair
+        window.addEventListener('beforeunload', () => {
+            if (unsubscribePedidos) unsubscribePedidos();
+            if (unsubscribeProdutos) unsubscribeProdutos();
+            if (unsubscribeAssinaturas) unsubscribeAssinaturas();
+        });
     </script>
 </body>
 </html>
