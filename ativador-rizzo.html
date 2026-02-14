@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0f172a">
-    <title>Bill Rizzo | Gerador de Assinaturas</title>
+    <meta name="theme-color" content="#f59e0b">
+    <title>Bill Rizzo | Gerador de Códigos</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        body { overscroll-behavior: none; }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes popIn { 0% { transform: scale(0.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
@@ -56,19 +56,7 @@
             box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);
         }
         
-        .btn-generate:active {
-            transform: translateY(0);
-        }
-        
-        .success-pulse {
-            animation: successPulse 0.5s ease-out;
-        }
-        
-        @keyframes successPulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
+        .btn-generate:active { transform: translateY(0); }
         
         .copy-flash {
             animation: copyFlash 0.3s ease-out;
@@ -78,13 +66,37 @@
             0% { background: #10b981; }
             100% { background: #1e293b; }
         }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            z-index: 100;
+            opacity: 0;
+            transition: all 0.3s;
+        }
+        
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast.error { background: #ef4444; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+    <!-- Toast -->
+    <div id="toast" class="toast">
+        <span id="toast-msg">Mensagem</span>
+    </div>
 
     <!-- Header -->
     <header class="glass-effect border-b border-slate-800 sticky top-0 z-50">
-        <div class="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
+        <div class="max-w-lg mx-auto px-4 py-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
                     <i class="fas fa-key text-white text-lg"></i>
@@ -94,14 +106,14 @@
                     <p class="text-[10px] text-slate-400 uppercase tracking-wider">Bill Rizzo Assinaturas</p>
                 </div>
             </div>
-            <a href="#" onclick="window.close(); return false;" class="p-2 text-slate-400 hover:text-white transition-colors">
-                <i class="fas fa-times text-xl"></i>
+            <a href="admin.html" class="p-2 text-slate-400 hover:text-white transition-colors">
+                <i class="fas fa-arrow-left text-xl"></i>
             </a>
         </div>
     </header>
 
     <!-- Main -->
-    <main class="flex-1 max-w-lg mx-auto w-full px-4 py-6 space-y-6">
+    <main class="max-w-lg mx-auto px-4 py-6 space-y-6">
 
         <!-- Formulário -->
         <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 animate-fade-in">
@@ -216,12 +228,6 @@
 
     </main>
 
-    <!-- Toast -->
-    <div id="toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 -translate-y-4 bg-slate-800 text-white px-6 py-3 rounded-xl shadow-2xl border border-slate-700 opacity-0 transition-all duration-300 z-50 flex items-center gap-2 pointer-events-none">
-        <i id="toast-icon" class="fas fa-check-circle text-emerald-400"></i>
-        <span id="toast-msg">Mensagem</span>
-    </div>
-
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -241,12 +247,10 @@
         let codigoAtual = '';
         let dadosAtual = {};
 
-        // Atalhos de duração
         window.setDuracao = (dias) => {
             document.getElementById('sub-duracao').value = dias;
         };
 
-        // Gerar código único
         function gerarCodigoUnico() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             let codigo = '';
@@ -257,25 +261,14 @@
             return codigo;
         }
 
-        // Toast
         function showToast(msg, type = 'success') {
             const toast = document.getElementById('toast');
-            const toastIcon = document.getElementById('toast-icon');
-            const toastMsg = document.getElementById('toast-msg');
-            
-            toastMsg.innerText = msg;
-            toastIcon.className = type === 'success' ? 'fas fa-check-circle text-emerald-400' : 'fas fa-exclamation-circle text-red-400';
-            
-            toast.classList.remove('opacity-0', '-translate-y-4', 'pointer-events-none');
-            toast.classList.add('opacity-100', 'translate-y-0');
-            
-            setTimeout(() => {
-                toast.classList.add('opacity-0', '-translate-y-4', 'pointer-events-none');
-                toast.classList.remove('opacity-100', 'translate-y-0');
-            }, 3000);
+            toast.innerText = msg;
+            toast.className = `toast ${type === 'error' ? 'error' : ''}`;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        // Gerar e salvar
         window.gerarCodigo = async () => {
             const nome = document.getElementById('sub-nome').value.trim();
             const email = document.getElementById('sub-email').value.trim();
@@ -314,7 +307,6 @@
 
                 dadosAtual = { nome, email, plano, valor, dataFim };
 
-                // Mostrar resultado
                 document.getElementById('codigo-display').innerText = codigoAtual;
                 document.getElementById('res-cliente').innerText = nome;
                 document.getElementById('res-plano').innerText = plano;
@@ -323,7 +315,6 @@
                 document.getElementById('area-resultado').classList.remove('hidden');
                 document.getElementById('area-resultado').scrollIntoView({ behavior: 'smooth' });
 
-                // Limpar formulário
                 document.getElementById('sub-nome').value = '';
                 document.getElementById('sub-email').value = '';
                 document.getElementById('sub-valor').value = '';
@@ -340,7 +331,6 @@
             }
         };
 
-        // Copiar código
         window.copiarCodigo = () => {
             navigator.clipboard.writeText(codigoAtual).then(() => {
                 const btn = document.getElementById('btn-copiar');
@@ -355,7 +345,6 @@
             });
         };
 
-        // Enviar WhatsApp
         window.enviarWhatsApp = () => {
             if (!dadosAtual.nome) return;
             
@@ -371,20 +360,17 @@
             window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
         };
 
-        // Novo código
         window.novoCodigo = () => {
             document.getElementById('area-resultado').classList.add('hidden');
             document.getElementById('sub-nome').focus();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
-        // Carregar códigos recentes
         window.carregarRecentes = () => {
             const container = document.getElementById('lista-recentes');
             container.innerHTML = '<p class="text-slate-500 text-center py-4 text-sm"><i class="fas fa-spinner fa-spin"></i> Carregando...</p>';
         };
 
-        // Real-time recentes
         onSnapshot(query(collection(db, "assinaturas"), orderBy("dataCriacao", "desc"), limit(10)), (snapshot) => {
             const container = document.getElementById('lista-recentes');
             
@@ -419,7 +405,6 @@
             });
         };
 
-        // Inicializar
         carregarRecentes();
     </script>
 </body>
