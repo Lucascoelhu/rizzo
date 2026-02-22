@@ -254,7 +254,7 @@
         function gerarCodigoUnico() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             let codigo = '';
-            for (let i = 0; i < 12; i++) {
+            for (let i = 0; i < 16; i++) {
                 if (i > 0 && i % 4 === 0) codigo += '-';
                 codigo += chars.charAt(Math.floor(Math.random() * chars.length));
             }
@@ -269,44 +269,52 @@
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
+
         window.gerarCodigo = async () => {
             const nome = document.getElementById('sub-nome').value.trim();
             const email = document.getElementById('sub-email').value.trim();
             const plano = document.getElementById('sub-plano').value;
             const valor = Number(document.getElementById('sub-valor').value);
             const duracao = Number(document.getElementById('sub-duracao').value) || 30;
-
+        
             if (!nome || !email || !valor) {
                 showToast('Preencha todos os campos!', 'error');
                 return;
             }
-
+        
+            // Mapear plano para tipo
+            const tipoPlano = {
+                'mensal': '30days',
+                'trimestral': '90days', 
+                'semestral': '180days',
+                'anual': '365days'
+            };
+        
             const btn = document.getElementById('btn-gerar');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
             btn.disabled = true;
-
+        
             try {
-                codigoAtual = gerarCodigoUnico();
-                const dataInicio = new Date();
+                codigoAtual = gerarCodigoUnico(); // Agora com 16 chars
                 const dataFim = new Date();
                 dataFim.setDate(dataFim.getDate() + duracao);
-
-                await addDoc(collection(db, "assinaturas"), {
-                    codigo: codigoAtual,
-                    cliente: nome,
+        
+                // Salvar na coleção 'licenses' com estrutura compatível
+                await addDoc(collection(db, "licenses"), {
+                    code: codigoAtual,
+                    status: 'active',
+                    type: tipoPlano[plano] || '30days',
+                    label: nome,
                     email: email,
-                    plano: plano,
                     valor: valor,
-                    duracao: duracao,
-                    dataInicio: dataInicio,
-                    dataFim: dataFim,
-                    ativa: true,
-                    usada: false,
-                    dataCriacao: new Date()
+                    activatedAt: new Date(),
+                    expiresAt: dataFim,
+                    usedBy: null,
+                    createdAt: new Date()
                 });
-
+        
                 dadosAtual = { nome, email, plano, valor, dataFim };
-
+        
                 document.getElementById('codigo-display').innerText = codigoAtual;
                 document.getElementById('res-cliente').innerText = nome;
                 document.getElementById('res-plano').innerText = plano;
@@ -314,14 +322,15 @@
                 
                 document.getElementById('area-resultado').classList.remove('hidden');
                 document.getElementById('area-resultado').scrollIntoView({ behavior: 'smooth' });
-
+        
+                // Limpar formulário
                 document.getElementById('sub-nome').value = '';
                 document.getElementById('sub-email').value = '';
                 document.getElementById('sub-valor').value = '';
                 document.getElementById('sub-duracao').value = '30';
-
+        
                 showToast('Código gerado e salvo!');
-
+        
             } catch (error) {
                 console.error(error);
                 showToast('Erro ao gerar código', 'error');
@@ -371,27 +380,37 @@
             container.innerHTML = '<p class="text-slate-500 text-center py-4 text-sm"><i class="fas fa-spinner fa-spin"></i> Carregando...</p>';
         };
 
-        onSnapshot(query(collection(db, "assinaturas"), orderBy("dataCriacao", "desc"), limit(10)), (snapshot) => {
+
+        onSnapshot(query(collection(db, "licenses"), orderBy("createdAt", "desc"), limit(10)), (snapshot) => {
             const container = document.getElementById('lista-recentes');
             
             if (snapshot.empty) {
                 container.innerHTML = '<p class="text-slate-500 text-center py-4 text-sm">Nenhum código gerado ainda</p>';
                 return;
             }
-
+        
             container.innerHTML = snapshot.docs.map(doc => {
                 const s = doc.data();
-                const data = s.dataCriacao?.toDate();
+                const data = s.createdAt?.toDate();
                 const dataStr = data ? data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+                
+                // Mapear tipo de volta para plano
+                const planoLabels = {
+                    '30days': 'Mensal',
+                    '90days': 'Trimestral',
+                    '180days': 'Semestral',
+                    '365days': 'Anual',
+                    'perpetual': 'Permanente'
+                };
                 
                 return `
                     <div class="flex items-center justify-between p-3 bg-slate-800/50 rounded-xl border border-slate-700/50 hover:border-slate-600 transition-all">
                         <div class="flex-1 min-w-0">
-                            <p class="font-medium text-white text-sm truncate">${s.cliente}</p>
-                            <p class="font-mono text-xs text-amber-400 mt-0.5">${s.codigo}</p>
-                            <p class="text-[10px] text-slate-500 mt-1">${s.plano} • ${dataStr}</p>
+                            <p class="font-medium text-white text-sm truncate">${s.label || 'Sem nome'}</p>
+                            <p class="font-mono text-xs text-amber-400 mt-0.5">${s.code}</p>
+                            <p class="text-[10px] text-slate-500 mt-1">${planoLabels[s.type] || s.type} • ${dataStr}</p>
                         </div>
-                        <button onclick="copiarCodigoExterno('${s.codigo}')" class="p-2 text-slate-400 hover:text-white transition-colors" title="Copiar">
+                        <button onclick="copiarCodigoExterno('${s.code}')" class="p-2 text-slate-400 hover:text-white transition-colors" title="Copiar">
                             <i class="fas fa-copy text-sm"></i>
                         </button>
                     </div>
