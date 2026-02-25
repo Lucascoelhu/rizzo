@@ -1076,37 +1076,44 @@
                 showActivationBlock();
                 return false;
             }
-
+        
             try {
-                const doc = await db.collection('licenses').doc(license.code.replace(/-/g, '')).get();
+                // NOVO: Busca na coleção 'licenses' (mesma do ativador)
+                const snap = await db.collection('licenses')
+                    .where('code', '==', license.code)
+                    .get();
                 
-                if(!doc.exists) {
+                if(snap.empty) {
                     localStorage.removeItem(LICENSE_KEY);
                     updateHeaderLicenseBadge();
                     showActivationBlock();
                     return false;
                 }
-
-                const data = doc.data();
+        
+                const data = snap.docs[0].data();
                 
+                // Verifica status bloqueado
                 if(data.status === 'blocked') {
                     localStorage.removeItem(LICENSE_KEY);
                     updateHeaderLicenseBadge();
                     showActivationBlock('Licença bloqueada pelo administrador.');
                     return false;
                 }
-
+        
+                // Verifica expiração
                 if(data.expiresAt && data.expiresAt.toDate() < new Date()) {
                     localStorage.removeItem(LICENSE_KEY);
                     updateHeaderLicenseBadge();
                     showActivationBlock('Sua licença expirou. Renove para continuar.');
                     return false;
                 }
-
+        
+                // Atualiza dados locais
                 const updatedLicense = {
                     code: license.code,
-                    type: data.type,
-                    label: data.label,
+                    type: data.type,           // '30days', '90days', '180days', '365days', 'perpetual'
+                    label: data.label,         // nome do cliente
+                    email: data.email,         // email do cliente
                     activatedAt: data.activatedAt?.toDate().toISOString(),
                     expiresAt: data.expiresAt?.toDate().toISOString() || null,
                     deviceId: generateDeviceId()
@@ -1119,6 +1126,7 @@
                 
             } catch(error) {
                 console.error('Erro ao verificar licença:', error);
+                // Fallback: usa dados locais se offline
                 updateStatusUI(license);
                 return true;
             }
@@ -1128,61 +1136,61 @@
             const input = document.getElementById('token-input');
             const token = input.value.replace(/-/g, '').toUpperCase();
             
+            // NOVO: Validação para 16 caracteres
             if(token.length !== 16) {
-                alert('Código inválido! Digite os 16 caracteres.');
+                alert('Código inválido! Digite os 16 caracteres no formato XXXX-XXXX-XXXX-XXXX');
                 return;
             }
-
+        
             const btn = event.target;
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Verificando...';
-
+        
             try {
-                const doc = await db.collection('licenses').doc(token).get();
+                // NOVO: Busca por código exato na coleção 'licenses'
+                const snap = await db.collection('licenses')
+                    .where('code', '==', input.value.toUpperCase())
+                    .get();
                 
-                if(!doc.exists) {
+                if(snap.empty) {
                     alert('❌ Código não encontrado! Verifique e tente novamente.');
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-unlock mr-2"></i>Ativar';
                     return;
                 }
-
+        
+                const doc = snap.docs[0];
                 const data = doc.data();
-
+        
+                // Verificações de status...
                 if(data.status === 'blocked') {
-                    alert('❌ Esta licença foi bloqueada. Entre em contato com o suporte.');
+                    alert('❌ Esta licença foi bloqueada.');
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-unlock mr-2"></i>Ativar';
                     return;
                 }
-
+        
                 if(data.status === 'expired' || (data.expiresAt && data.expiresAt.toDate() < new Date())) {
-                    alert('❌ Esta licença expirou. Entre em contato com o suporte para renovar.');
+                    alert('❌ Esta licença expirou.');
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-unlock mr-2"></i>Ativar';
                     return;
                 }
-
-                if(data.usedBy && data.usedBy !== generateDeviceId()) {
-                    const confirmTransfer = confirm('⚠️ Esta licença está ativa em outro dispositivo.\n\nDeseja transferir para este dispositivo?');
-                    if(!confirmTransfer) {
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fas fa-unlock mr-2"></i>Ativar';
-                        return;
-                    }
-                }
-
-                await db.collection('licenses').doc(token).update({
+        
+                // NOVO: Atualiza o documento com dados de ativação
+                await doc.ref.update({
                     status: 'active',
                     usedBy: generateDeviceId(),
                     activatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                     lastCheck: firebase.firestore.FieldValue.serverTimestamp()
                 });
-
+        
+                // Salva localmente
                 const license = {
                     code: input.value.toUpperCase(),
                     type: data.type,
                     label: data.label,
+                    email: data.email,
                     activatedAt: new Date().toISOString(),
                     expiresAt: data.expiresAt?.toDate().toISOString() || null,
                     deviceId: generateDeviceId()
@@ -1207,17 +1215,16 @@
             const statusText = document.getElementById('status-text');
             const daysRemaining = document.getElementById('days-remaining');
             
+            // NOVO: Mapeamento completo dos tipos do ativador
             const typeLabels = {
-                'perpetual': 'Permanente',
-                '30days': '30 Dias',
-                '90days': '90 Dias',
-                '365days': '1 Ano'
+                '30days': 'Mensal (30 dias)',
+                '90days': 'Trimestral (90 dias)', 
+                '180days': 'Semestral (180 dias)',
+                '365days': 'Anual (365 dias)',
+                'perpetual': 'Permanente'
             };
+            
             document.getElementById('plan-type').textContent = typeLabels[license.type] || license.type;
-            
-            const activated = license.activatedAt ? new Date(license.activatedAt).toLocaleDateString('pt-BR') : '--';
-            document.getElementById('activated-date').textContent = activated;
-            
             document.getElementById('license-label').textContent = license.label || 'Sem identificação';
 
             if(!license.expiresAt) {
