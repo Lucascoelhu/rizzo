@@ -136,6 +136,75 @@
             margin-bottom: 0.75rem;
         }
         
+        async function saveProduct() {
+    const id = document.getElementById('product-id').value;
+    const name = document.getElementById('product-name').value.trim();
+    
+    const priceValue = document.getElementById('product-price').value;
+    const price = parseFloat(priceValue.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+    
+    const units = parseInt(document.getElementById('product-units').value) || null;
+    const description = document.getElementById('product-desc').value.trim();
+    const available = document.getElementById('product-available').checked;
+    
+    if(!name) return alert('Digite o nome do produto');
+    if(price <= 0) return alert('Digite um preço de venda válido');
+    
+    const btn = document.querySelector('#product-modal button[onclick="saveProduct()"]');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Salvando...';
+
+    let flavors = [];
+    if(state.hasFlavors && state.flavors.length > 0) {
+        flavors = state.flavors
+            .filter(f => f.name.trim() !== '')
+            .map(f => ({
+                name: f.name.trim(),
+                price: f.price || price
+            }));
+        
+        if(flavors.length === 0) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            return alert('Adicione pelo menos um sabor com nome');
+        }
+    }
+    
+    const productData = {
+        name,
+        price,
+        units,
+        description,
+        available,
+        image: base64Image || null,
+        hasFlavors: state.hasFlavors && flavors.length > 0,
+        flavors: flavors.length > 0 ? flavors : null,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    try {
+        if(id) {
+            await db.collection('products').doc(id).update(productData);
+        } else {
+            productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            await db.collection('products').add(productData);
+        }
+        
+        base64Image = null;
+        closeModal('product-modal');
+        loadProducts();
+        alert('Produto salvo com sucesso!');
+        
+    } catch(error) {
+        console.error('Erro ao salvar produto:', error);
+        alert('Erro ao salvar: Verifique se a foto não é muito grande.');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+        
         .toggle-switch {
             position: relative;
             width: 48px;
@@ -397,102 +466,102 @@
 <body class="pb-24">
 
     <!-- MODAL PRODUTO -->
-    <div id="product-modal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold text-indigo-400" id="product-modal-title">Novo Produto</h3>
-                <button onclick="closeModal('product-modal')" class="text-gray-400 hover:text-white"><i class="fas fa-times text-xl"></i></button>
-            </div>
+<div id="product-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-indigo-400" id="product-modal-title">Novo Produto</h3>
+            <button onclick="closeModal('product-modal')" class="text-gray-400 hover:text-white"><i class="fas fa-times text-xl"></i></button>
+        </div>
+        
+        <input type="hidden" id="product-id">
+        
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs text-gray-400 mb-2 block">Foto do Produto</label>
+                <div class="relative">
+                    <img id="product-image-preview" class="w-full h-48 object-cover rounded-xl hidden border-2 border-indigo-500">
+                    
+                    <div id="product-image-placeholder" class="w-full h-48 bg-white/5 rounded-xl flex items-center justify-center border-2 border-dashed border-white/10">
+                        <i class="fas fa-camera text-3xl text-gray-500"></i>
+                    </div>
             
-            <input type="hidden" id="product-id">
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="text-xs text-gray-400 mb-2 block">Foto do Produto</label>
-                    <div class="relative">
-                        <img id="product-image-preview" class="w-full h-48 object-cover rounded-xl hidden border-2 border-indigo-500">
-                        
-                        <div id="product-image-placeholder" class="w-full h-48 bg-white/5 rounded-xl flex items-center justify-center border-2 border-dashed border-white/10">
-                            <i class="fas fa-camera text-3xl text-gray-500"></i>
+                    <div id="camera-container" class="hidden flex-col items-center">
+                        <div class="camera-mask mb-4">
+                            <video id="video-feed" autoplay playsinline></video>
                         </div>
-                
-                        <div id="camera-container" class="hidden relative w-full h-48 bg-black rounded-xl overflow-hidden">
-                            <video id="video-feed" class="w-full h-full object-cover" autoplay playsinline></video>
-                            <button type="button" onclick="takeSnapshot()" class="absolute bottom-3 left-1/2 -translate-x-1/2 w-12 h-12 bg-white rounded-full border-4 border-gray-300 shadow-lg flex items-center justify-center">
-                                <div class="w-8 h-8 bg-red-500 rounded-full"></div>
-                            </button>
-                        </div>
-                
-                        <div id="image-loading" class="image-upload-loading hidden">
-                            <div class="loading-spinner"></div>
-                        </div>
-                
-                        <div class="absolute bottom-2 right-2 flex gap-2" id="action-buttons">
-                            <button type="button" onclick="openLiveCamera()" class="p-3 bg-emerald-600 rounded-lg text-white shadow-lg hover:bg-emerald-700 transition">
-                                <i class="fas fa-video"></i>
-                            </button>
-                            <button type="button" onclick="document.getElementById('product-image').click()" class="p-3 bg-indigo-600 rounded-lg text-white shadow-lg hover:bg-indigo-700 transition">
-                                <i class="fas fa-upload"></i>
-                            </button>
-                        </div>
-                        
-                        <input type="file" id="product-image" accept="image/*" class="hidden" onchange="processImage(this.files[0])">
-                    </div>
-                    <p class="text-xs text-gray-500 mt-2">A imagem será enviada para o Firebase Storage</p>
-                </div>
-                
-                <canvas id="compress-canvas" class="hidden"></canvas>
-
-                <input type="text" id="product-name" placeholder="Nome do produto" class="input-field w-full">
-
-                <div>
-                    <label class="text-xs text-emerald-400 mb-1 block">Preço de Venda (R$)</label>
-                    <input type="text" id="product-price" placeholder="0,00" class="input-field w-full" oninput="formatCurrency(this); calculateUnitPrice()">
-                </div>
-
-                <div>
-                    <label class="text-xs text-gray-400 mb-1 block">Qtd. Unidades (opcional)</label>
-                    <input type="number" id="product-units" placeholder="1" class="input-field w-full" oninput="calculateUnitPrice()">
-                </div>
-
-                <div id="unit-price-display" class="hidden p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/30">
-                    <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-400">Valor por unidade:</span>
-                        <span class="text-lg font-bold text-indigo-400" id="unit-price-value">R$ 0,00</span>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-between p-4 bg-white/5 rounded-xl cursor-pointer" onclick="toggleFlavors()">
-                    <div>
-                        <p class="font-bold text-sm">Produto tem sabores/variações?</p>
-                        <p class="text-xs text-gray-400">Ex: Morango, Uva, Chocolate...</p>
-                    </div>
-                    <div class="toggle-switch" id="has-flavors-toggle"></div>
-                </div>
-
-                <div id="flavors-section" class="hidden space-y-3">
-                    <div class="flex justify-between items-center">
-                        <p class="font-bold text-sm">Sabores/Variações</p>
-                        <button type="button" onclick="addFlavorField(event)" class="text-xs bg-indigo-500/20 text-indigo-400 px-3 py-1 rounded-lg hover:bg-indigo-500/30 transition">
-                            <i class="fas fa-plus mr-1"></i>Adicionar
+                        <button type="button" onclick="takeSnapshot()" class="w-14 h-14 bg-white rounded-full border-4 border-gray-300 shadow-lg flex items-center justify-center active:scale-95 transition">
+                            <div class="w-10 h-10 bg-red-500 rounded-full"></div>
                         </button>
                     </div>
-                    <div id="flavors-list" class="space-y-2"></div>
+            
+                    <div class="absolute bottom-2 right-2 flex gap-2" id="action-buttons">
+                        <button type="button" onclick="openLiveCamera()" class="p-3 bg-emerald-600 rounded-lg text-white shadow-lg hover:bg-emerald-700 transition">
+                            <i class="fas fa-video"></i>
+                        </button>
+                        <button type="button" onclick="document.getElementById('product-image').click()" class="p-3 bg-indigo-600 rounded-lg text-white shadow-lg hover:bg-indigo-700 transition">
+                            <i class="fas fa-upload"></i>
+                        </button>
+                    </div>
+                    
+                    <input type="file" id="product-image" accept="image/*" class="hidden" onchange="processImage(this.files[0])">
                 </div>
-
-                <textarea id="product-desc" placeholder="Descrição do produto (opcional)" rows="2" class="input-field w-full"></textarea>
-
-                <label class="flex items-center justify-between p-4 bg-white/5 rounded-xl cursor-pointer">
-                    <span class="font-bold text-sm">Produto Disponível</span>
-                    <input type="checkbox" id="product-available" checked class="w-5 h-5 rounded accent-indigo-500">
-                </label>
-
-                <button onclick="saveProduct()" class="w-full py-3 rounded-xl font-bold text-white btn-primary mt-4 hover:opacity-90 transition">
-                    <i class="fas fa-save mr-2"></i>Salvar Produto
-                </button>
             </div>
+            
+            <canvas id="compress-canvas" class="hidden"></canvas>
+
+            <div class="space-y-3">
+                <input type="text" id="product-name" placeholder="Nome do produto" class="input-field w-full">
+            </div>
+
+            <div>
+                <label class="text-xs text-emerald-400 mb-1 block">Preço de Venda (R$)</label>
+                <input type="text" id="product-price" placeholder="0,00" class="input-field w-full" oninput="formatCurrency(this); calculateUnitPrice()">
+            </div>
+
+            <div>
+                <label class="text-xs text-gray-400 mb-1 block">Unidades por Display/Caixa</label>
+                <input type="number" id="product-units" placeholder="Ex: 12" class="input-field w-full" oninput="calculateUnitPrice()">
+                <p class="text-[10px] text-gray-500 mt-1">* Se for venda por unidade individual, deixe 1 ou vazio.</p>
+            </div>
+
+            <div id="unit-price-display" class="hidden p-3 bg-indigo-500/10 rounded-xl border border-indigo-500/30">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-400">Valor por unidade:</span>
+                    <span class="text-lg font-bold text-indigo-400" id="unit-price-value">R$ 0,00</span>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between p-4 bg-white/5 rounded-xl cursor-pointer" onclick="toggleFlavors()">
+                <div>
+                    <p class="font-bold text-sm">Produto tem sabores/variações?</p>
+                    <p class="text-xs text-gray-400">Ex: Morango, Uva, Chocolate...</p>
+                </div>
+                <div class="toggle-switch" id="has-flavors-toggle"></div>
+            </div>
+
+            <div id="flavors-section" class="hidden space-y-3">
+                <div class="flex justify-between items-center">
+                    <p class="font-bold text-sm">Sabores/Variações</p>
+                    <button type="button" onclick="addFlavorField(event)" class="text-xs bg-indigo-500/20 text-indigo-400 px-3 py-1 rounded-lg hover:bg-indigo-500/30 transition">
+                        <i class="fas fa-plus mr-1"></i>Adicionar
+                    </button>
+                </div>
+                <div id="flavors-list" class="space-y-2"></div>
+            </div>
+
+            <textarea id="product-desc" placeholder="Descrição do produto (opcional)" rows="2" class="input-field w-full"></textarea>
+
+            <label class="flex items-center justify-between p-4 bg-white/5 rounded-xl cursor-pointer">
+                <span class="font-bold text-sm">Produto Disponível</span>
+                <input type="checkbox" id="product-available" checked class="w-5 h-5 rounded accent-indigo-500">
+            </label>
+
+            <button onclick="saveProduct()" class="w-full py-3 rounded-xl font-bold text-white btn-primary mt-4 hover:opacity-90 transition">
+                <i class="fas fa-save mr-2"></i>Salvar Produto
+            </button>
         </div>
     </div>
+</div>
 
     <!-- MODAL DETALHES DO PEDIDO -->
     <div id="order-detail-modal" class="modal-overlay">
@@ -944,12 +1013,11 @@
         
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        const storage = firebase.storage();
         
         // Variáveis globais
         let base64Image = null;
-        let imageFile = null;
         let streamPointer = null;
+
         
         let currentOrder = null;
         let selectedPaymentMethod = null;
@@ -1440,172 +1508,131 @@
         }
 
         // CÂMERA E IMAGEM
-        async function openLiveCamera() {
-            const video = document.getElementById('video-feed');
-            const container = document.getElementById('camera-container');
-            const placeholder = document.getElementById('product-image-placeholder');
-            const preview = document.getElementById('product-image-preview');
+async function openLiveCamera() {
+    const video = document.getElementById('video-feed');
+    const container = document.getElementById('camera-container');
+    const placeholder = document.getElementById('product-image-placeholder');
+    const preview = document.getElementById('product-image-preview');
 
-            try {
-                streamPointer = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "environment" }, 
-                    audio: false 
-                });
-                video.srcObject = streamPointer;
-                
-                container.classList.remove('hidden');
-                placeholder.classList.add('hidden');
-                preview.classList.add('hidden');
-                document.getElementById('action-buttons').classList.add('hidden');
-            } catch (err) {
-                alert("Erro ao abrir câmera: " + err);
-            }
-        }
+    try {
+        streamPointer = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: "environment" }, 
+            audio: false 
+        });
+        video.srcObject = streamPointer;
+        
+        container.classList.remove('hidden');
+        container.classList.add('flex');
+        placeholder.classList.add('hidden');
+        preview.classList.add('hidden');
+        document.getElementById('action-buttons').classList.add('hidden');
+    } catch (err) {
+        alert("Erro ao abrir câmera: " + err);
+    }
+}
 
-        function takeSnapshot() {
-            const video = document.getElementById('video-feed');
+function takeSnapshot() {
+    const video = document.getElementById('video-feed');
+    const canvas = document.getElementById('compress-canvas');
+    const ctx = canvas.getContext('2d');
+
+    const maxWidth = 400;
+    canvas.width = maxWidth;
+    canvas.height = video.videoHeight * (maxWidth / video.videoWidth);
+    
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    base64Image = canvas.toDataURL('image/jpeg', 0.5);
+    
+    document.getElementById('product-image-preview').src = base64Image;
+    document.getElementById('product-image-preview').classList.remove('hidden');
+    document.getElementById('camera-container').classList.add('hidden');
+    document.getElementById('camera-container').classList.remove('flex');
+    document.getElementById('action-buttons').classList.remove('hidden');
+    
+    if(streamPointer) streamPointer.getTracks().forEach(t => t.stop());
+}
+
+function processImage(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
             const canvas = document.getElementById('compress-canvas');
             const ctx = canvas.getContext('2d');
+            canvas.width = 400;
+            canvas.height = img.height * (400 / img.width);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            
+            base64Image = canvas.toDataURL('image/jpeg', 0.5);
+            document.getElementById('product-image-preview').src = base64Image;
+            document.getElementById('product-image-preview').classList.remove('hidden');
+            document.getElementById('product-image-placeholder').classList.add('hidden');
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
 
-            const maxWidth = 800;
-            canvas.width = maxWidth;
-            canvas.height = video.videoHeight * (maxWidth / video.videoWidth);
-            
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-            canvas.toBlob((blob) => {
-                imageFile = new File([blob], `product_${Date.now()}.jpg`, { type: 'image/jpeg' });
-                base64Image = canvas.toDataURL('image/jpeg', 0.8);
-                
-                document.getElementById('product-image-preview').src = base64Image;
-                document.getElementById('product-image-preview').classList.remove('hidden');
-                document.getElementById('camera-container').classList.add('hidden');
-                document.getElementById('action-buttons').classList.remove('hidden');
-                
-                if(streamPointer) streamPointer.getTracks().forEach(t => t.stop());
-            }, 'image/jpeg', 0.8);
-        }
-
-        function processImage(file) {
-            if (!file) return;
-            
-            imageFile = file;
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.getElementById('compress-canvas');
-                    const ctx = canvas.getContext('2d');
-                    
-                    const maxWidth = 800;
-                    let width = img.width;
-                    let height = img.height;
-                    
-                    if (width > maxWidth) {
-                        height = height * (maxWidth / width);
-                        width = maxWidth;
-                    }
-                    
-                    canvas.width = width;
-                    canvas.height = height;
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    canvas.toBlob((blob) => {
-                        imageFile = new File([blob], file.name, { type: 'image/jpeg' });
-                        base64Image = canvas.toDataURL('image/jpeg', 0.8);
-                        
-                        document.getElementById('product-image-preview').src = base64Image;
-                        document.getElementById('product-image-preview').classList.remove('hidden');
-                        document.getElementById('product-image-placeholder').classList.add('hidden');
-                    }, 'image/jpeg', 0.8);
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        async function uploadImageToStorage(file, productId) {
-            if (!file) return null;
-            
-            const loadingEl = document.getElementById('image-loading');
-            loadingEl.classList.remove('hidden');
-            
-            try {
-                const timestamp = Date.now();
-                const fileName = `products/${productId || 'new'}/${timestamp}_${file.name}`;
-                const storageRef = storage.ref(fileName);
-                
-                const snapshot = await storageRef.put(file);
-                const downloadURL = await snapshot.ref.getDownloadURL();
-                
-                return downloadURL;
-            } catch (error) {
-                console.error('Erro ao fazer upload da imagem:', error);
-                throw error;
-            } finally {
-                loadingEl.classList.add('hidden');
-            }
-        }
 
         // PRODUTOS E SABORES
-        function openProductModal(productId = null) {
-            base64Image = null;
-            imageFile = null;
-            state.flavors = [];
-            state.hasFlavors = false;
+function openProductModal(productId = null) {
+    base64Image = null;
+    state.flavors = [];
+    state.hasFlavors = false;
+    
+    document.getElementById('product-modal-title').textContent = productId ? 'Editar Produto' : 'Novo Produto';
+    document.getElementById('product-id').value = productId || '';
+    document.getElementById('product-name').value = '';
+    document.getElementById('product-price').value = '';
+    document.getElementById('product-units').value = '';
+    document.getElementById('product-desc').value = '';
+    document.getElementById('product-available').checked = true;
+    document.getElementById('product-image-preview').classList.add('hidden');
+    document.getElementById('product-image-placeholder').classList.remove('hidden');
+    document.getElementById('unit-price-display').classList.add('hidden');
+    
+    document.getElementById('has-flavors-toggle').classList.remove('active');
+    document.getElementById('flavors-section').classList.add('hidden');
+    document.getElementById('flavors-list').innerHTML = '';
+    
+    if(productId) {
+        const product = state.products.find(p => p.id === productId);
+        if(product) {
+            document.getElementById('product-name').value = product.name || '';
+            document.getElementById('product-price').value = product.price ? formatMoney(product.price) : '';
+            document.getElementById('product-units').value = product.units || '';
+            document.getElementById('product-desc').value = product.description || '';
+            document.getElementById('product-available').checked = product.available !== false;
             
-            document.getElementById('product-modal-title').textContent = productId ? 'Editar Produto' : 'Novo Produto';
-            document.getElementById('product-id').value = productId || '';
-            document.getElementById('product-name').value = '';
-            document.getElementById('product-price').value = '';
-            document.getElementById('product-units').value = '';
-            document.getElementById('product-desc').value = '';
-            document.getElementById('product-available').checked = true;
-            document.getElementById('product-image-preview').classList.add('hidden');
-            document.getElementById('product-image-placeholder').classList.remove('hidden');
-            document.getElementById('unit-price-display').classList.add('hidden');
-            
-            document.getElementById('has-flavors-toggle').classList.remove('active');
-            document.getElementById('flavors-section').classList.add('hidden');
-            document.getElementById('flavors-list').innerHTML = '';
-            
-            if(productId) {
-                const product = state.products.find(p => p.id === productId);
-                if(product) {
-                    document.getElementById('product-name').value = product.name || '';
-                    document.getElementById('product-price').value = product.price ? formatMoney(product.price) : '';
-                    document.getElementById('product-units').value = product.units || '';
-                    document.getElementById('product-desc').value = product.description || '';
-                    document.getElementById('product-available').checked = product.available !== false;
-                    
-                    if(product.image) {
-                        document.getElementById('product-image-preview').src = product.image;
-                        document.getElementById('product-image-preview').classList.remove('hidden');
-                        document.getElementById('product-image-placeholder').classList.add('hidden');
-                        base64Image = product.image;
-                    }
-                    
-                    if(product.flavors && product.flavors.length > 0) {
-                        state.hasFlavors = true;
-                        state.flavors = product.flavors.map((f, index) => ({
-                            id: 'flavor_' + Date.now() + '_' + index,
-                            name: f.name || '',
-                            price: f.price || product.price || 0
-                        }));
-                        
-                        document.getElementById('has-flavors-toggle').classList.add('active');
-                        document.getElementById('flavors-section').classList.remove('hidden');
-                        
-                        renderFlavorsList();
-                    }
-                    
-                    calculateUnitPrice();
-                }
+            if(product.image) {
+                document.getElementById('product-image-preview').src = product.image;
+                document.getElementById('product-image-preview').classList.remove('hidden');
+                document.getElementById('product-image-placeholder').classList.add('hidden');
+                base64Image = product.image;
             }
             
-            document.getElementById('product-modal').classList.add('show');
+            if(product.flavors && product.flavors.length > 0) {
+                state.hasFlavors = true;
+                state.flavors = product.flavors.map((f, index) => ({
+                    id: 'flavor_' + Date.now() + '_' + index,
+                    name: f.name || '',
+                    price: f.price || product.price || 0
+                }));
+                
+                document.getElementById('has-flavors-toggle').classList.add('active');
+                document.getElementById('flavors-section').classList.remove('hidden');
+                
+                renderFlavorsList();
+            }
+            
+            calculateUnitPrice();
         }
+    }
+    
+    document.getElementById('product-modal').classList.add('show');
+}
 
         function toggleFlavors() {
             state.hasFlavors = !state.hasFlavors;
@@ -1619,7 +1646,7 @@
                 document.getElementById('flavors-list').innerHTML = '';
             }
         }
-
+        
         function addFlavorField(event) {
             if(event) {
                 event.stopPropagation();
@@ -1636,16 +1663,17 @@
             renderFlavorsList();
         }
 
+
         function removeFlavor(flavorId) {
             state.flavors = state.flavors.filter(f => f.id !== flavorId);
             renderFlavorsList();
         }
-
+        
         function updateFlavorName(flavorId, newName) {
             const flavor = state.flavors.find(f => f.id === flavorId);
             if(flavor) flavor.name = newName;
         }
-
+        
         function updateFlavorPrice(flavorId, newPrice) {
             const flavor = state.flavors.find(f => f.id === flavorId);
             if(flavor) {
@@ -1687,7 +1715,7 @@
                 </div>
             `}).join('');
         }
-
+        
         function calculateUnitPrice() {
             const price = parseFloat(document.getElementById('product-price').value.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
             const units = parseInt(document.getElementById('product-units').value) || 0;
@@ -1719,62 +1747,51 @@
             const originalText = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Salvando...';
-
+        
+            let flavors = [];
+            if(state.hasFlavors && state.flavors.length > 0) {
+                flavors = state.flavors
+                    .filter(f => f.name.trim() !== '')
+                    .map(f => ({
+                        name: f.name.trim(),
+                        price: f.price || price
+                    }));
+                
+                if(flavors.length === 0) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    return alert('Adicione pelo menos um sabor com nome');
+                }
+            }
+            
+            const productData = {
+                name,
+                price,
+                units,
+                description,
+                available,
+                image: base64Image || null,
+                hasFlavors: state.hasFlavors && flavors.length > 0,
+                flavors: flavors.length > 0 ? flavors : null,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
             try {
-                let flavors = [];
-                if(state.hasFlavors && state.flavors.length > 0) {
-                    flavors = state.flavors
-                        .filter(f => f.name.trim() !== '')
-                        .map(f => ({
-                            name: f.name.trim(),
-                            price: f.price || price
-                        }));
-                    
-                    if(flavors.length === 0) {
-                        btn.disabled = false;
-                        btn.innerHTML = originalText;
-                        return alert('Adicione pelo menos um sabor com nome');
-                    }
-                }
-                
-                let imageUrl = base64Image;
-                if(imageFile && !base64Image.startsWith('http')) {
-                    imageUrl = await uploadImageToStorage(imageFile, id);
-                }
-                
-                const productData = {
-                    name,
-                    price,
-                    units,
-                    description,
-                    available,
-                    image: imageUrl || null,
-                    hasFlavors: state.hasFlavors && flavors.length > 0,
-                    flavors: flavors.length > 0 ? flavors : null,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                
                 if(id) {
                     await db.collection('products').doc(id).update(productData);
                 } else {
                     productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                    const docRef = await db.collection('products').add(productData);
-                    
-                    if(imageFile && imageUrl) {
-                        const newImageUrl = await uploadImageToStorage(imageFile, docRef.id);
-                        await docRef.update({ image: newImageUrl });
-                    }
+                    await db.collection('products').add(productData);
                 }
                 
                 base64Image = null;
-                imageFile = null;
                 closeModal('product-modal');
                 loadProducts();
                 alert('Produto salvo com sucesso!');
                 
             } catch(error) {
                 console.error('Erro ao salvar produto:', error);
-                alert('Erro ao salvar: ' + error.message);
+                alert('Erro ao salvar: Verifique se a foto não é muito grande.');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
