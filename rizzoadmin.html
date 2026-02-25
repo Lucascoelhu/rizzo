@@ -443,18 +443,7 @@
                 
                 <canvas id="compress-canvas" class="hidden"></canvas>
 
-                <div class="space-y-3">
-                    <input type="text" id="product-name" placeholder="Nome do produto" class="input-field w-full">
-                    
-                    <div class="flex gap-2">
-                        <select id="product-category" class="input-field flex-1">
-                            <option value="">Selecione uma categoria...</option>
-                        </select>
-                        <button type="button" onclick="openCategoryModal()" class="px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl transition flex items-center justify-center min-w-[44px]" title="Gerenciar Categorias">
-                            <i class="fas fa-cog"></i>
-                        </button>
-                    </div>
-                </div>
+                <input type="text" id="product-name" placeholder="Nome do produto" class="input-field w-full">
 
                 <div>
                     <label class="text-xs text-emerald-400 mb-1 block">Preço de Venda (R$)</label>
@@ -501,27 +490,6 @@
                 <button onclick="saveProduct()" class="w-full py-3 rounded-xl font-bold text-white btn-primary mt-4 hover:opacity-90 transition">
                     <i class="fas fa-save mr-2"></i>Salvar Produto
                 </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL CATEGORIAS -->
-    <div id="category-modal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold text-purple-400">Gerenciar Categorias</h3>
-                <button onclick="closeModal('category-modal')" class="text-gray-400 hover:text-white"><i class="fas fa-times text-xl"></i></button>
-            </div>
-            
-            <div class="flex gap-2 mb-6">
-                <input type="text" id="new-category-name" placeholder="Nome da nova categoria..." class="input-field flex-1">
-                <button onclick="addCategory()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold transition">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
-
-            <div id="categories-list" class="space-y-2 max-h-60 overflow-y-auto">
-                <p class="text-center text-gray-500 py-4">Carregando...</p>
             </div>
         </div>
     </div>
@@ -755,7 +723,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-3 gap-3 mb-4">
+            <div class="grid grid-cols-2 gap-3 mb-4">
                 <button onclick="openProductModal()" class="glass-card p-4 rounded-xl text-left hover:bg-white/5 transition">
                     <div class="w-10 h-10 bg-indigo-500/20 rounded-lg flex items-center justify-center mb-2">
                         <i class="fas fa-plus text-indigo-400"></i>
@@ -769,13 +737,6 @@
                     </div>
                     <p class="font-bold text-sm">Nova Despesa</p>
                     <p class="text-xs text-gray-400">Registrar saída</p>
-                </button>
-                <button onclick="openCategoryModal()" class="glass-card p-4 rounded-xl text-left hover:bg-white/5 transition">
-                    <div class="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center mb-2">
-                        <i class="fas fa-tags text-purple-400"></i>
-                    </div>
-                    <p class="font-bold text-sm">Categorias</p>
-                    <p class="text-xs text-gray-400">Gerenciar</p>
                 </button>
             </div>
 
@@ -822,10 +783,6 @@
                     <button onclick="openProductModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition">
                         <i class="fas fa-plus mr-2"></i>Novo
                     </button>
-                </div>
-
-                <div class="flex gap-2 mb-4 overflow-x-auto pb-2" id="category-filters">
-                    <button class="tab-btn active" onclick="filterByCategory('all', this)">Todos</button>
                 </div>
 
                 <div id="products-list" class="space-y-3 pb-20"></div>
@@ -1005,10 +962,8 @@
             currentTab: 'dashboard',
             products: [],
             orders: [],
-            categories: [],
             expenses: [],
             currentFilter: 'all',
-            currentCategory: 'all',
             hasFlavors: false,
             flavors: []
         };
@@ -1022,19 +977,8 @@
             loadDashboard();
             loadOrders();
             loadProducts();
-            loadCategories();
             loadExpenses();
             loadSavedExpenseNames();
-            
-            const catInput = document.getElementById('new-category-name');
-            if(catInput) {
-                catInput.addEventListener('keypress', (e) => {
-                    if(e.key === 'Enter') {
-                        e.preventDefault();
-                        addCategory();
-                    }
-                });
-            }
 
             document.getElementById('payment-term-days').addEventListener('input', updateTermDueDate);
         });
@@ -1078,7 +1022,6 @@
             }
         
             try {
-                // NOVO: Busca na coleção 'licenses' (mesma do ativador)
                 const snap = await db.collection('licenses')
                     .where('code', '==', license.code)
                     .get();
@@ -1092,7 +1035,6 @@
         
                 const data = snap.docs[0].data();
                 
-                // Verifica status bloqueado
                 if(data.status === 'blocked') {
                     localStorage.removeItem(LICENSE_KEY);
                     updateHeaderLicenseBadge();
@@ -1100,7 +1042,6 @@
                     return false;
                 }
         
-                // Verifica expiração
                 if(data.expiresAt && data.expiresAt.toDate() < new Date()) {
                     localStorage.removeItem(LICENSE_KEY);
                     updateHeaderLicenseBadge();
@@ -1108,12 +1049,11 @@
                     return false;
                 }
         
-                // Atualiza dados locais
                 const updatedLicense = {
                     code: license.code,
-                    type: data.type,           // '30days', '90days', '180days', '365days', 'perpetual'
-                    label: data.label,         // nome do cliente
-                    email: data.email,         // email do cliente
+                    type: data.type,
+                    label: data.label,
+                    email: data.email,
                     activatedAt: data.activatedAt?.toDate().toISOString(),
                     expiresAt: data.expiresAt?.toDate().toISOString() || null,
                     deviceId: generateDeviceId()
@@ -1126,7 +1066,6 @@
                 
             } catch(error) {
                 console.error('Erro ao verificar licença:', error);
-                // Fallback: usa dados locais se offline
                 updateStatusUI(license);
                 return true;
             }
@@ -1136,7 +1075,6 @@
             const input = document.getElementById('token-input');
             const token = input.value.replace(/-/g, '').toUpperCase();
             
-            // NOVO: Validação para 16 caracteres
             if(token.length !== 16) {
                 alert('Código inválido! Digite os 16 caracteres no formato XXXX-XXXX-XXXX-XXXX');
                 return;
@@ -1147,7 +1085,6 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Verificando...';
         
             try {
-                // NOVO: Busca por código exato na coleção 'licenses'
                 const snap = await db.collection('licenses')
                     .where('code', '==', input.value.toUpperCase())
                     .get();
@@ -1162,7 +1099,6 @@
                 const doc = snap.docs[0];
                 const data = doc.data();
         
-                // Verificações de status...
                 if(data.status === 'blocked') {
                     alert('❌ Esta licença foi bloqueada.');
                     btn.disabled = false;
@@ -1177,7 +1113,6 @@
                     return;
                 }
         
-                // NOVO: Atualiza o documento com dados de ativação
                 await doc.ref.update({
                     status: 'active',
                     usedBy: generateDeviceId(),
@@ -1185,7 +1120,6 @@
                     lastCheck: firebase.firestore.FieldValue.serverTimestamp()
                 });
         
-                // Salva localmente
                 const license = {
                     code: input.value.toUpperCase(),
                     type: data.type,
@@ -1215,7 +1149,6 @@
             const statusText = document.getElementById('status-text');
             const daysRemaining = document.getElementById('days-remaining');
             
-            // NOVO: Mapeamento completo dos tipos do ativador
             const typeLabels = {
                 '30days': 'Mensal (30 dias)',
                 '90days': 'Trimestral (90 dias)', 
@@ -1380,129 +1313,6 @@
             if(tab === 'status') checkLicense();
             
             updateHeaderLicenseBadge();
-        }
-
-        // CATEGORIAS
-        function openCategoryModal() {
-            document.getElementById('new-category-name').value = '';
-            document.getElementById('category-modal').classList.add('show');
-            renderCategoriesList();
-        }
-
-        async function addCategory() {
-            const nameInput = document.getElementById('new-category-name');
-            const name = nameInput.value.trim();
-            
-            if(!name) return alert('Digite o nome da categoria');
-            
-            const exists = state.categories.some(c => 
-                c.name.toLowerCase() === name.toLowerCase()
-            );
-            
-            if(exists) {
-                alert('Esta categoria já existe!');
-                nameInput.focus();
-                return;
-            }
-
-            const btn = document.querySelector('#category-modal button[onclick="addCategory()"]');
-            const originalHTML = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-            try {
-                await db.collection('categories').add({
-                    name: name,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                
-                nameInput.value = '';
-                await loadCategories();
-                renderCategoriesList();
-                updateProductCategorySelect();
-                
-            } catch(error) {
-                console.error(error);
-                alert('Erro ao adicionar categoria');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalHTML;
-            }
-        }
-
-        async function deleteCategory(id, name) {
-            const productsUsing = state.products.filter(p => p.category === id);
-            
-            if(productsUsing.length > 0) {
-                alert(`❌ Não é possível excluir!\n\nExistem ${productsUsing.length} produto(s) na categoria "${name}".\n\nMova ou exclua esses produtos primeiro.`);
-                return;
-            }
-            
-            if(!confirm(`Tem certeza que deseja excluir a categoria "${name}"?`)) return;
-
-            try {
-                await db.collection('categories').doc(id).delete();
-                await loadCategories();
-                renderCategoriesList();
-                updateProductCategorySelect();
-                
-            } catch(error) {
-                console.error(error);
-                alert('Erro ao excluir categoria');
-            }
-        }
-
-        function renderCategoriesList() {
-            const container = document.getElementById('categories-list');
-            
-            if(!state.categories || state.categories.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-8 text-gray-500">
-                        <i class="fas fa-tags text-4xl mb-2 opacity-30"></i>
-                        <p>Nenhuma categoria cadastrada</p>
-                        <p class="text-xs mt-2">Adicione sua primeira categoria acima</p>
-                    </div>`;
-                return;
-            }
-
-            container.innerHTML = state.categories.map(cat => {
-                const productCount = state.products.filter(p => p.category === cat.id).length;
-                
-                return `
-                <div class="flex justify-between items-center p-3 bg-white/5 rounded-xl hover:bg-white/10 transition group">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
-                            <i class="fas fa-tag text-purple-400"></i>
-                        </div>
-                        <div>
-                            <p class="font-bold text-sm text-white">${cat.name}</p>
-                            <p class="text-xs ${productCount > 0 ? 'text-emerald-400' : 'text-gray-500'}">
-                                ${productCount} produto${productCount !== 1 ? 's' : ''}
-                            </p>
-                        </div>
-                    </div>
-                    <button onclick="deleteCategory('${cat.id}', '${cat.name.replace(/'/g, "\\'")}')" 
-                            class="p-2 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
-                            title="Excluir categoria">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </div>
-                `;
-            }).join('');
-        }
-
-        function updateProductCategorySelect() {
-            const select = document.getElementById('product-category');
-            if(!select) return;
-            
-            const currentValue = select.value;
-            
-            select.innerHTML = '<option value="">Selecione uma categoria...</option>' +
-                state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-            
-            if(state.categories.some(c => c.id === currentValue)) {
-                select.value = currentValue;
-            }
         }
 
         // DESPESAS
@@ -1688,7 +1498,6 @@
                     const canvas = document.getElementById('compress-canvas');
                     const ctx = canvas.getContext('2d');
                     
-                    // Redimensionar para máximo 800px de largura
                     const maxWidth = 800;
                     let width = img.width;
                     let height = img.height;
@@ -1723,12 +1532,10 @@
             loadingEl.classList.remove('hidden');
             
             try {
-                // Criar referência única no Storage
                 const timestamp = Date.now();
                 const fileName = `products/${productId || 'new'}/${timestamp}_${file.name}`;
                 const storageRef = storage.ref(fileName);
                 
-                // Upload do arquivo
                 const snapshot = await storageRef.put(file);
                 const downloadURL = await snapshot.ref.getDownloadURL();
                 
@@ -1763,8 +1570,6 @@
             document.getElementById('flavors-section').classList.add('hidden');
             document.getElementById('flavors-list').innerHTML = '';
             
-            updateProductCategorySelect();
-            
             if(productId) {
                 const product = state.products.find(p => p.id === productId);
                 if(product) {
@@ -1773,7 +1578,6 @@
                     document.getElementById('product-units').value = product.units || '';
                     document.getElementById('product-desc').value = product.description || '';
                     document.getElementById('product-available').checked = product.available !== false;
-                    document.getElementById('product-category').value = product.category || '';
                     
                     if(product.image) {
                         document.getElementById('product-image-preview').src = product.image;
@@ -1906,11 +1710,9 @@
             
             const units = parseInt(document.getElementById('product-units').value) || null;
             const description = document.getElementById('product-desc').value.trim();
-            const category = document.getElementById('product-category').value;
             const available = document.getElementById('product-available').checked;
             
             if(!name) return alert('Digite o nome do produto');
-            if(!category) return alert('Selecione uma categoria');
             if(price <= 0) return alert('Digite um preço de venda válido');
             
             const btn = document.querySelector('#product-modal button[onclick="saveProduct()"]');
@@ -1935,7 +1737,6 @@
                     }
                 }
                 
-                // Se tem imagem nova, fazer upload
                 let imageUrl = base64Image;
                 if(imageFile && !base64Image.startsWith('http')) {
                     imageUrl = await uploadImageToStorage(imageFile, id);
@@ -1946,7 +1747,6 @@
                     price,
                     units,
                     description,
-                    category,
                     available,
                     image: imageUrl || null,
                     hasFlavors: state.hasFlavors && flavors.length > 0,
@@ -1960,7 +1760,6 @@
                     productData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                     const docRef = await db.collection('products').add(productData);
                     
-                    // Se havia imagem, fazer upload novamente com o ID correto
                     if(imageFile && imageUrl) {
                         const newImageUrl = await uploadImageToStorage(imageFile, docRef.id);
                         await docRef.update({ image: newImageUrl });
@@ -1982,27 +1781,6 @@
             }
         }
 
-        async function loadCategories() {
-            try {
-                const snap = await db.collection('categories').orderBy('name').get();
-                state.categories = snap.docs.map(doc => ({
-                    id: doc.id, 
-                    ...doc.data()
-                }));
-                
-                const filterContainer = document.getElementById('category-filters');
-                if(filterContainer) {
-                    filterContainer.innerHTML = '<button class="tab-btn active" onclick="filterByCategory(\'all\', this)">Todos</button>' +
-                        state.categories.map(c => `<button class="tab-btn" onclick="filterByCategory('${c.id}', this)">${c.name}</button>`).join('');
-                }
-                
-                updateProductCategorySelect();
-                
-            } catch(e) {
-                console.error('Erro ao carregar categorias:', e);
-            }
-        }
-
         async function loadProducts() {
             try {
                 const snap = await db.collection('products').orderBy('name').get();
@@ -2014,13 +1792,8 @@
         }
 
         function renderProducts() {
-            let filtered = state.products;
-            if(state.currentCategory !== 'all') {
-                filtered = filtered.filter(p => p.category === state.currentCategory);
-            }
-            
             const container = document.getElementById('products-list');
-            container.innerHTML = filtered.map(p => {
+            container.innerHTML = state.products.map(p => {
                 const unitPrice = p.units && p.units > 1 ? (p.price / p.units).toFixed(2) : null;
                 
                 return `
@@ -2073,17 +1846,6 @@
                 console.error("Erro ao excluir:", error);
                 alert('Erro ao excluir produto.');
             }
-        }
-        
-        function filterByCategory(catId, btnElement) {
-            state.currentCategory = catId;
-            
-            document.querySelectorAll('#category-filters .tab-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            if(btnElement) btnElement.classList.add('active');
-            
-            renderProducts();
         }
 
         async function toggleProductStatus(id, currentStatus) {
@@ -2321,7 +2083,6 @@
             return `<span class="status-badge ${className}">${text}</span>`;
         }
 
-        // AÇÕES DO PEDIDO
         async function markAsReceived() {
             if(!currentOrder) return;
             
@@ -2339,7 +2100,6 @@
             }
         }
 
-        // DESCONTO
         function openDiscountModal() {
             if(!currentOrder) return;
             
@@ -2419,7 +2179,6 @@
             }
         }
 
-        // PAGAMENTO
         function openPaymentModal() {
             if(!currentOrder) return;
             
@@ -2607,7 +2366,6 @@
             return container;
         }
 
-        // COMPARTILHAR RECIBO
         function openShareModal() {
             if(!currentOrder) return;
             
@@ -2616,7 +2374,6 @@
             document.getElementById('share-order-number').textContent = currentOrder.orderNumber || currentOrder.id.slice(-4);
             document.getElementById('share-order-total').textContent = formatMoney(finalTotal);
             
-            // Gerar preview do recibo
             generateReceiptPreview();
             
             document.getElementById('share-receipt-modal').classList.add('show');
@@ -2633,7 +2390,6 @@
             try {
                 const container = document.getElementById('receipt-preview-container') || generateReceiptPreview();
                 
-                // Aguardar renderização
                 await new Promise(resolve => setTimeout(resolve, 100));
                 
                 const canvas = await html2canvas(container, {
@@ -2645,13 +2401,10 @@
                     height: container.offsetHeight
                 });
                 
-                // Converter para blob
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
                 
-                // Criar arquivo
                 const file = new File([blob], `recibo-${currentOrder.orderNumber || currentOrder.id.slice(-4)}.png`, { type: 'image/png' });
                 
-                // Tentar usar Web Share API primeiro (funciona em mobile)
                 if(navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         files: [file],
@@ -2659,7 +2412,6 @@
                         text: `Segue o recibo do seu pedido, ${currentOrder.clientName}!`
                     });
                 } else {
-                    // Fallback: download e instruções
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
@@ -2667,14 +2419,12 @@
                     a.click();
                     URL.revokeObjectURL(url);
                     
-                    // Abrir WhatsApp Web com mensagem
                     const message = `Olá ${currentOrder.clientName}! Segue o recibo do seu pedido #${currentOrder.orderNumber || currentOrder.id.slice(-4)}. Total: ${formatMoney(currentOrder.totalWithDiscount || currentOrder.finalTotal || currentOrder.total)}`;
                     window.open(`https://wa.me/${currentOrder.clientPhone ? currentOrder.clientPhone.replace(/\D/g, '') : ''}?text=${encodeURIComponent(message)}`, '_blank');
                     
                     alert('Recibo baixado! Anexe a imagem no WhatsApp.');
                 }
                 
-                // Limpar container
                 container.remove();
                 
             } catch(error) {
@@ -2775,7 +2525,6 @@
             doc.save(`recibo-${order.orderNumber || Date.now()}.pdf`);
         }
 
-        // DASHBOARD
         async function loadDashboard() {
             const today = new Date().toISOString().split('T')[0];
             
@@ -2793,7 +2542,6 @@
                     todayCount++;
                 });
                 
-                // Calcular ticket médio geral
                 let totalSales = 0, totalOrders = 0;
                 allSnap.forEach(doc => {
                     const data = doc.data();
@@ -2809,7 +2557,6 @@
                 document.getElementById('stat-ticket').textContent = formatMoney(ticketMedio);
                 document.getElementById('stat-term-pending').textContent = termSnap.size;
                 
-                // Top produtos
                 const productSales = {};
                 allSnap.forEach(doc => {
                     (doc.data().items || []).forEach(item => {
@@ -2835,7 +2582,6 @@
                     </div>
                 `).join('') : '<p class="text-gray-500 text-sm">Sem dados suficientes</p>';
                 
-                // Top clientes
                 const clientSales = {};
                 allSnap.forEach(doc => {
                     const data = doc.data();
