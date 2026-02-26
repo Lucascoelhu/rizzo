@@ -1051,7 +1051,6 @@
         function renderProducts() {
             const container = document.getElementById('products-list');
             
-            // Atualizar contador
             let filtrados = products.filter(p => p.available !== false);
             
             if(currentCategory !== 'all') {
@@ -1103,55 +1102,63 @@
                 const cartItem = cart.find(i => i.id === product.id);
                 const qtyInCart = calculateItemQty(cartItem);
                 const precoFinal = product.price;
-                const temDesconto = false;
-                const percentualDesconto = 0;
                 
-                if(viewMode === 'grid') {
-                    // MODO GRADE - Estilo Lojão PML original
-                    const div = document.createElement('div');
-                    div.className = 'product-card-grid cursor-pointer';
-                    div.onclick = () => openProductModal(product.id);
-                    
-                    const nomeDisplay = termoBusca ? destacarTermo(product.name, termoBusca) : product.name;
-                    
+                const nomeDisplay = termoBusca ? destacarTermo(product.name, termoBusca) : product.name;
+                
+                const div = document.createElement('div');
+                
+                if (viewMode === 'grid') {
+                    // MODO GRADE com controles +/- diretos
+                    div.className = 'product-card-grid';
                     div.innerHTML = `
-                        <div class="p-4 flex items-center gap-4">
-                            <div class="relative flex-shrink-0">
-                                ${product.image ? 
-                                    `<img src="${product.image}" class="product-image" alt="${product.name}" onclick="event.stopPropagation(); openImageModal('${product.image}', '${product.name.replace(/'/g, "\\'")}', ${precoFinal})" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-                                    `<div class="product-image flex items-center justify-center bg-gray-100"><i class="fas fa-box text-2xl text-gray-300"></i></div>`
-                                }
-                                ${qtyInCart > 0 ? `<span class="badge-qty">${qtyInCart}</span>` : ''}
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <h3 class="font-bold text-gray-900 leading-tight truncate text-lg">${nomeDisplay}</h3>
-                                <div class="flex items-center gap-2 mt-1">
+                        <div class="p-4">
+                            <div class="flex items-center gap-4 mb-3">
+                                <div class="relative flex-shrink-0">
+                                    ${product.image ? 
+                                        `<img src="${product.image}" class="product-image" alt="${product.name}" onclick="event.stopPropagation(); openImageModal('${product.image}', '${product.name.replace(/'/g, "\\'")}', ${precoFinal})" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                                        `<div class="product-image flex items-center justify-center bg-gray-100"><i class="fas fa-box text-2xl text-gray-300"></i></div>`
+                                    }
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-bold text-gray-900 leading-tight truncate text-lg">${nomeDisplay}</h3>
                                     <p class="text-xl font-bold text-indigo-600">${formatMoney(precoFinal)}</p>
                                 </div>
                             </div>
-                            <div class="flex-shrink-0">
-                                <button class="bg-gray-100 text-gray-700 w-12 h-12 rounded-full flex items-center justify-center hover:bg-gray-200 transition text-lg" onclick="event.stopPropagation(); addToCart('${product.id}')">
+                            
+                            <!-- CONTROLES +/- DIRETOS -->
+                            <div class="flex items-center justify-center gap-4 bg-gray-50 rounded-xl p-3">
+                                <button onclick="updateProductQty('${product.id}', -1)" 
+                                        class="qty-btn bg-red-100 text-red-600 hover:bg-red-200 w-12 h-12 text-xl"
+                                        ${qtyInCart === 0 ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                
+                                <span class="text-3xl font-bold text-gray-800 w-16 text-center">${qtyInCart}</span>
+                                
+                                <button onclick="updateProductQty('${product.id}', 1)" 
+                                        class="qty-btn bg-indigo-600 text-white hover:bg-indigo-700 w-12 h-12 text-xl shadow-lg shadow-indigo-200">
                                     <i class="fas fa-plus"></i>
                                 </button>
                             </div>
+                            
+                            ${qtyInCart > 0 ? `
+                            <div class="text-center mt-2">
+                                <p class="text-sm text-indigo-600 font-semibold">
+                                    Total: ${formatMoney(qtyInCart * precoFinal)}
+                                </p>
+                            </div>
+                            ` : ''}
                         </div>
                     `;
-                    container.appendChild(div);
                 } else {
-                    // MODO LISTA - Compacto
-                    const div = document.createElement('div');
-                    div.className = 'product-card-list cursor-pointer';
-                    div.onclick = () => openProductModal(product.id);
-                    
-                    const nomeDisplay = termoBusca ? destacarTermo(product.name, termoBusca) : product.name;
-                    
+                    // MODO LISTA com controles +/- diretos
+                    div.className = 'product-card-list';
                     div.innerHTML = `
                         <div class="relative flex-shrink-0">
                             ${product.image ? 
                                 `<img src="${product.image}" class="product-image-list" alt="${product.name}" onclick="event.stopPropagation(); openImageModal('${product.image}', '${product.name.replace(/'/g, "\\'")}', ${precoFinal})">` : 
                                 `<div class="product-image-list bg-gray-100 flex items-center justify-center text-gray-300"><i class="fas fa-box text-xl"></i></div>`
                             }
-                            ${qtyInCart > 0 ? `<span class="badge-qty" style="top:-4px; right:-4px; width:22px; height:22px; font-size:0.7rem;">${qtyInCart}</span>` : ''}
                         </div>
                         
                         <div class="product-info-list">
@@ -1161,12 +1168,25 @@
                             </div>
                         </div>
                         
-                        <button onclick="event.stopPropagation(); addToCart('${product.id}')" class="btn-add-list">
-                            <i class="fas fa-plus"></i>
-                        </button>
+                        <!-- CONTROLES +/- DIRETOS NO MODO LISTA -->
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <button onclick="updateProductQty('${product.id}', -1)" 
+                                    class="w-10 h-10 rounded-lg bg-red-100 text-red-600 flex items-center justify-center hover:bg-red-200 transition ${qtyInCart === 0 ? 'opacity-50 cursor-not-allowed' : ''}"
+                                    ${qtyInCart === 0 ? 'disabled' : ''}>
+                                <i class="fas fa-minus text-sm"></i>
+                            </button>
+                            
+                            <span class="text-xl font-bold text-gray-800 w-8 text-center">${qtyInCart}</span>
+                            
+                            <button onclick="updateProductQty('${product.id}', 1)" 
+                                    class="w-10 h-10 rounded-lg bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition shadow-md">
+                                <i class="fas fa-plus text-sm"></i>
+                            </button>
+                        </div>
                     `;
-                    container.appendChild(div);
                 }
+                
+                container.appendChild(div);
             });
         }
 
@@ -1434,20 +1454,23 @@
                     total: calculateItemTotal(item)
                 }));
                 
+                // CORREÇÃO: Usar "orders" em vez de "pedidos" para compatibilidade com admin
                 const orderData = {
-                    numero: numeroPedido,
+                    orderNumber: numeroPedido,  // CORREÇÃO: usar orderNumber (padrão admin)
                     clientName: document.getElementById('client-name').value.trim(),
                     clientPhone: document.getElementById('client-phone').value.trim(),
                     clientAddress: document.getElementById('client-address').value.trim(),
                     clientReference: document.getElementById('client-reference').value.trim(),
                     items: orderItems,
                     total: activeCart.reduce((sum, item) => sum + calculateItemTotal(item), 0),
-                    status: 'pendente',
-                    data: new Date(),
-                    pago: false
+                    status: 'received',  // CORREÇÃO: usar 'received' (padrão admin)
+                    date: new Date().toISOString().split('T')[0],  // CORREÇÃO: formato YYYY-MM-DD
+                    timestamp: new Date(),  // CORREÇÃO: adicionar timestamp
+                    paid: false
                 };
                 
-                await addDoc(collection(db, "pedidos"), orderData);
+                // CORREÇÃO: coleção "orders" em vez de "pedidos"
+                await addDoc(collection(db, "orders"), orderData);
                 
                 saveUserData();
                 mostrarContadorPedido(numeroPedido);
@@ -1492,6 +1515,33 @@
                 currency: 'BRL'
             }).format(value || 0);
         }
+        
+        // ADICIONE esta função nova
+        window.updateProductQty = (productId, change) => {
+            const product = products.find(p => p.id === productId);
+            if(!product) return;
+            
+            const cartItem = cart.find(i => i.id === productId);
+            const currentQty = cartItem?.flavors?.[0]?.qty || 0;
+            const newQty = Math.max(0, currentQty + change);
+            
+            // Atualiza o carrinho
+            cartItem.flavors = [{name: null, price: product.price, qty: newQty}];
+            
+            // Atualiza a interface
+            renderProducts();
+            updateFooterTotal();
+            
+            // Feedback visual
+            if(change > 0) {
+                showToast(`${product.name} adicionado!`);
+                if(navigator.vibrate) navigator.vibrate(50);
+            } else if(change < 0 && newQty >= 0) {
+                if(newQty === 0) {
+                    showToast(`${product.name} removido`);
+                }
+            }
+        };
 
         init();
     </script>
