@@ -80,7 +80,6 @@
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
         }
         
-        /* Cards - Otimizados para toque */
         .product-card-grid {
             background: white;
             border-radius: var(--border-radius);
@@ -90,6 +89,7 @@
             overflow: hidden;
             will-change: transform;
             contain: layout style paint;
+            margin-bottom: 8px; /* Adicionado: espaço extra entre cards */
         }
         
         .product-card-grid:active {
@@ -106,8 +106,9 @@
             overflow: hidden;
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 12px;
+            gap: 16px; 
+            padding: 16px;
+            margin-bottom: 6px;
             contain: layout style paint;
         }
 
@@ -1185,9 +1186,9 @@
             
             requestAnimationFrame(() => {
                 if (mode === 'grid') {
-                    container.className = 'max-w-lg mx-auto px-4 pb-32 grid grid-cols-2 gap-3';
+                    container.className = 'max-w-lg mx-auto px-4 pb-32 grid grid-cols-2 gap-5'; // gap-5 em vez de gap-3
                 } else {
-                    container.className = 'max-w-lg mx-auto px-4 pb-32 flex flex-col gap-2';
+                    container.className = 'max-w-lg mx-auto px-4 pb-32 flex flex-col gap-4'; // gap-4 em vez de gap-2
                 }
                 container.style.opacity = '1';
                 renderProducts();
