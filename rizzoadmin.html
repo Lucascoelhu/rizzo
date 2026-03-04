@@ -3008,6 +3008,11 @@ function openProductModal(productId = null) {
                 const botName = meData.result.first_name || meData.result.username;
 
                 // Then, try to send a test message
+                // Escape special characters for MarkdownV2: _ * [ ] ( ) ~ ` > # + - = | { } . !
+                const escapeMarkdown = (text) => {
+                    return text.replace(/[_*\[\]()~`>#+=|{}.!]/g, '\\$&');
+                };
+
                 const messageResponse = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
                     method: 'POST',
                     headers: {
@@ -3015,7 +3020,7 @@ function openProductModal(productId = null) {
                     },
                     body: JSON.stringify({
                         chat_id: chatId,
-                        text: '🤖 *Teste Rizzo Admin*\n\n✅ Conexão estabelecida com sucesso!\n\n📊 Bot: ' + botName + '\n⏰ ' + new Date().toLocaleString('pt-BR'),
+                        text: '🤖 Teste Rizzo Admin\n\n✅ Conexão estabelecida com sucesso!\n\n📊 Bot: ' + escapeMarkdown(botName) + '\n⏰ ' + escapeMarkdown(new Date().toLocaleString('pt-BR')),
                         parse_mode: 'MarkdownV2'
                     })
                 });
