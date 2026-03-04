@@ -2455,92 +2455,307 @@ function openProductModal(productId = null) {
 
         function downloadReceiptPDF() {
             if(!currentOrder) return;
-            generateReceiptPDF(currentOrder);
+            
+            const btn = event.target.closest('button');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p class="text-xs font-bold">Gerando PDF...</p>';
+            
+            // Pequeno delay para mostrar o loading
+            setTimeout(() => {
+                generateReceiptPDF(currentOrder);
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                closeModal('share-receipt-modal');
+            }, 500);
         }
 
         function generateReceiptPDF(order) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ unit: 'mm', format: [48, 200] });
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ 
+        unit: 'mm', 
+        format: 'a4',
+        orientation: 'portrait'
+    });
 
-            let y = 10;
-            const margin = 2;
-            const width = 44;
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 20;
+    const contentWidth = pageWidth - (margin * 2);
+    let y = margin;
 
-            doc.setFontSize(10).text("RIZZO", width/2, y, { align: 'center' });
-            y += 8;
+    // Cores
+    const primaryColor = [99, 102, 241]; // Indigo
+    const secondaryColor = [16, 185, 129]; // Emerald
+    const dangerColor = [239, 68, 68]; // Red
+    const textColor = [31, 41, 55]; // Gray 800
+    const lightGray = [243, 244, 246]; // Gray 100
+
+    // Helper para adicionar texto com quebra de linha
+    function addWrappedText(text, x, y, maxWidth, lineHeight, align = 'left') {
+        const lines = doc.splitTextToSize(text, maxWidth);
+        doc.text(lines, x, y, { align });
+        return lines.length * lineHeight;
+    }
+
+    // ========== CABEÇALHO DA EMPRESA ==========
+    doc.setFillColor(...primaryColor);
+    doc.rect(0, 0, pageWidth, 50, 'F');
+
+    // Logo/Nome da empresa
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(28);
+    doc.setFont(undefined, 'bold');
+    doc.text("RIZZO", margin, 25);
+    
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text("BISCOITOS", margin, 32);
+    
+    // Informações da empresa no cabeçalho
+    doc.setFontSize(9);
+    const headerInfo = [
+        "CNPJ: 00.000.000/0000-00",
+        "Tel: (12) 98873-1795",
+        "Endereço: Rua Exemplo, 123 - Centro"
+    ];
+    let headerY = 20;
+    headerInfo.forEach(info => {
+        doc.text(info, pageWidth - margin, headerY, { align: 'right' });
+        headerY += 5;
+    });
+
+    y = 60;
+
+    // ========== TÍTULO DO DOCUMENTO ==========
+    doc.setTextColor(...primaryColor);
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    doc.text("COMPROVANTE DE PEDIDO", margin, y);
+    
+    // Número do pedido destacado
+    doc.setFillColor(...lightGray);
+    doc.roundedRect(pageWidth - margin - 60, y - 8, 60, 12, 2, 2, 'F');
+    doc.setTextColor(...textColor);
+    doc.setFontSize(11);
+    doc.text(`Pedido #${order.orderNumber || order.id.slice(-4)}`, pageWidth - margin - 30, y, { align: 'center' });
+    
+    y += 15;
+
+    // ========== INFORMAÇÕES DO CLIENTE ==========
+    doc.setFillColor(...lightGray);
+    doc.roundedRect(margin, y, contentWidth, 45, 3, 3, 'F');
+    
+    doc.setTextColor(...primaryColor);
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text("DADOS DO CLIENTE", margin + 5, y + 8);
+    
+    doc.setTextColor(...textColor);
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    
+    const clientInfo = [
+        { label: "Nome:", value: order.clientName || 'N/A' },
+        { label: "Telefone:", value: order.clientPhone || 'N/A' },
+        { label: "Endereço:", value: order.clientAddress || 'N/A' }
+    ];
+    
+    let clientY = y + 18;
+    clientInfo.forEach(info => {
+        doc.setFont(undefined, 'bold');
+        doc.text(info.label, margin + 5, clientY);
+        doc.setFont(undefined, 'normal');
+        const labelWidth = doc.getTextWidth(info.label + ' ');
+        const wrappedHeight = addWrappedText(info.value, margin + 5 + labelWidth, clientY, contentWidth - 60, 5);
+        clientY += Math.max(6, wrappedHeight);
+    });
+
+    y += 55;
+
+    // ========== DETALHES DO PEDIDO ==========
+    doc.setTextColor(...primaryColor);
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text("DETALHES DO PEDIDO", margin, y);
+    y += 8;
+
+    // Data e status
+    doc.setTextColor(...textColor);
+    doc.setFontSize(9);
+    doc.text(`Data do pedido: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}`, margin, y);
+    
+    // Status com cor
+    let statusText = "PENDENTE";
+    let statusColor = [245, 158, 11]; // Amarelo
+    
+    if(order.status === 'paid') {
+        statusText = "PAGO";
+        statusColor = secondaryColor;
+    } else if(order.status === 'term') {
+        statusText = "A PRAZO";
+        statusColor = dangerColor;
+    } else if(order.status === 'received') {
+        statusText = "RECEBIDO";
+        statusColor = [59, 130, 246]; // Azul
+    } else if(order.status === 'confirmed') {
+        statusText = "CONFIRMADO";
+        statusColor = [139, 92, 246]; // Roxo
+    }
+    
+    doc.setFillColor(...statusColor);
+    doc.roundedRect(pageWidth - margin - 35, y - 5, 35, 8, 2, 2, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont(undefined, 'bold');
+    doc.text(statusText, pageWidth - margin - 17.5, y, { align: 'center' });
+    
+    y += 15;
+
+    // ========== TABELA DE ITENS ==========
+    // Cabeçalho da tabela
+    doc.setFillColor(...primaryColor);
+    doc.rect(margin, y, contentWidth, 10, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.text("QTD", margin + 5, y + 7);
+    doc.text("ITEM", margin + 20, y + 7);
+    doc.text("PREÇO UN.", pageWidth - margin - 50, y + 7, { align: 'center' });
+    doc.text("TOTAL", pageWidth - margin - 5, y + 7, { align: 'right' });
+    
+    y += 12;
+
+    // Linhas dos itens
+    if(order.items && order.items.length > 0) {
+        order.items.forEach((item, index) => {
+            const itemTotal = item.total || (item.price * item.qty);
             
-            doc.setFontSize(7);
-            doc.text(`Pedido: #${order.orderNumber || order.id.slice(-4)}`, margin, y);
-            y += 4;
-            doc.text(`Data: ${new Date().toLocaleDateString()}`, margin, y);
-            y += 4;
-            
-            if(order.clientName) {
-                doc.text(`Cliente: ${order.clientName.substring(0, 25)}`, margin, y);
-                y += 4;
-            }
-            if(order.clientPhone) {
-                doc.text(`Tel: ${order.clientPhone}`, margin, y);
-                y += 4;
-            }
-            if(order.clientAddress) {
-                const address = order.clientAddress.substring(0, 35);
-                doc.text(`End: ${address}`, margin, y);
-                y += 4;
+            // Alternar cor de fundo
+            if(index % 2 === 0) {
+                doc.setFillColor(250, 250, 250);
+                doc.rect(margin, y - 5, contentWidth, 10, 'F');
             }
             
-            y += 2;
-            doc.text("-".repeat(35), width/2, y, { align: 'center' });
-            y += 4;
-
-            if(order.items) {
-                order.items.forEach(item => {
-                    const itemTotal = item.total || item.price * item.qty;
-                    doc.text(`${item.qty}x ${item.name.substring(0, 20)}`, margin, y);
-                    y += 4;
-                    if(item.flavor) {
-                        doc.text(`  (${item.flavor})`, margin, y);
-                        y += 3;
-                    }
-                    doc.text(formatMoney(itemTotal), width - margin, y, { align: 'right' });
-                    y += 4;
-                });
-            }
-
-            doc.text("-".repeat(35), width/2, y, { align: 'center' });
-            y += 4;
-
-            doc.text(`Subtotal:`, margin, y);
-            doc.text(formatMoney(order.total), width - margin, y, { align: 'right' });
-            y += 4;
-
-            if(order.discount > 0) {
-                doc.text(`Desconto:`, margin, y);
-                doc.text(`-${formatMoney(order.discount)}`, width - margin, y, { align: 'right' });
-                y += 4;
-            }
-
-            doc.setFontSize(9).setFont(undefined, 'bold');
-            doc.text(`TOTAL:`, margin, y);
-            const finalTotal = order.totalWithDiscount || order.finalTotal || order.total;
-            doc.text(formatMoney(finalTotal), width - margin, y, { align: 'right' });
+            doc.setTextColor(...textColor);
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
             
-            y += 6;
-            doc.setFontSize(7).setFont(undefined, 'normal');
+            doc.text(item.qty.toString(), margin + 5, y);
             
-            if(order.status === 'paid') {
-                doc.text(`PAGO - ${order.paymentMethod.toUpperCase()}`, width/2, y, { align: 'center' });
-            } else if(order.status === 'term') {
-                doc.text(`A PRAZO - Vence: ${formatDate(order.termDueDate)}`, width/2, y, { align: 'center' });
-            } else {
-                doc.text(`PENDENTE`, width/2, y, { align: 'center' });
+            // Nome do item com possível sabor
+            let itemName = item.name;
+            if(item.flavor) {
+                itemName += ` (${item.flavor})`;
             }
+            doc.text(itemName.substring(0, 40), margin + 20, y);
             
-            y += 6;
-            doc.text("Obrigado pela preferência!", width/2, y, { align: 'center' });
+            doc.text(formatMoney(item.price), pageWidth - margin - 50, y, { align: 'center' });
+            doc.setFont(undefined, 'bold');
+            doc.text(formatMoney(itemTotal), pageWidth - margin - 5, y, { align: 'right' });
+            
+            y += 10;
+        });
+    }
 
-            doc.save(`recibo-${order.orderNumber || Date.now()}.pdf`);
+    // Linha divisória
+    y += 5;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 10;
+
+    // ========== RESUMO FINANCEIRO ==========
+    const finalTotal = order.totalWithDiscount || order.finalTotal || order.total;
+    
+    // Caixa de resumo
+    doc.setFillColor(...lightGray);
+    doc.roundedRect(pageWidth - margin - 80, y, 80, order.discount ? 35 : 25, 3, 3, 'F');
+    
+    let summaryY = y + 8;
+    
+    doc.setTextColor(...textColor);
+    doc.setFontSize(10);
+    
+    // Subtotal
+    doc.setFont(undefined, 'normal');
+    doc.text("Subtotal:", pageWidth - margin - 75, summaryY);
+    doc.text(formatMoney(order.total), pageWidth - margin - 5, summaryY, { align: 'right' });
+    summaryY += 8;
+    
+    // Desconto (se houver)
+    if(order.discount && order.discount > 0) {
+        doc.setTextColor(...dangerColor);
+        doc.text("Desconto:", pageWidth - margin - 75, summaryY);
+        doc.text(`-${formatMoney(order.discount)}`, pageWidth - margin - 5, summaryY, { align: 'right' });
+        doc.setTextColor(...textColor);
+        summaryY += 8;
+    }
+    
+    // Total final
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(...secondaryColor);
+    doc.text("TOTAL:", pageWidth - margin - 75, summaryY);
+    doc.text(formatMoney(finalTotal), pageWidth - margin - 5, summaryY, { align: 'right' });
+
+    y += order.discount ? 45 : 35;
+
+    // ========== INFORMAÇÕES DE PAGAMENTO ==========
+    if(order.paymentMethod || order.status === 'term') {
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(...primaryColor);
+        doc.roundedRect(margin, y, contentWidth, 30, 3, 3, 'D');
+        
+        doc.setTextColor(...primaryColor);
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'bold');
+        doc.text("INFORMAÇÕES DE PAGAMENTO", margin + 5, y + 8);
+        
+        doc.setTextColor(...textColor);
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        
+        let paymentText = "";
+        if(order.paymentMethod) {
+            const methods = {
+                'dinheiro': 'Dinheiro',
+                'pix': 'PIX',
+                'debito': 'Cartão de Débito',
+                'credito': 'Cartão de Crédito',
+                'prazo': 'A Prazo'
+            };
+            paymentText = `Forma: ${methods[order.paymentMethod] || order.paymentMethod}`;
+            
+            if(order.paymentMethod === 'prazo' && order.paymentTerm) {
+                paymentText += ` (${order.paymentTerm} dias)`;
+            }
         }
+        
+        doc.text(paymentText, margin + 5, y + 18);
+        
+        if(order.termDueDate) {
+            doc.setTextColor(...dangerColor);
+            doc.text(`Vencimento: ${formatDate(order.termDueDate)}`, margin + 5, y + 25);
+        }
+        
+        y += 40;
+    }
+
+    // ========== RODAPÉ ==========
+    // Linha divisória decorativa
+    doc.setDrawColor(...primaryColor);
+    doc.setLineWidth(0.5);
+    doc.line(margin, pageHeight - 40, pageWidth - margin, pageHeight - 40);
+    
+    // Mensagem de agradecimento
+    doc.setTextColor(...primaryColor);
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text("OBRIGADO PELA PREFERÊNCIA!", pageWidth / 2, pageHeight - 30, { align: 'center' });
+
+    // Salvar PDF
+    doc.save(`pedido-${order.orderNumber || order.id.slice(-4)}-${order.clientName?.replace(/\s+/g, '_') || 'cliente'}.pdf`);
+}
 
         async function loadDashboard() {
             const today = new Date().toISOString().split('T')[0];
@@ -2669,10 +2884,19 @@ function openProductModal(productId = null) {
         }
 
         function refreshData() {
-            loadDashboard();
-            loadOrders();
-            loadProducts();
-            loadExpenses();
+            const btn = document.querySelector('button[onclick="refreshData()"] i');
+            btn.classList.add('fa-spin');
+            
+            Promise.all([
+                loadDashboard(),
+                loadOrders(),
+                loadProducts(),
+                loadExpenses()
+            ]).then(() => {
+                setTimeout(() => btn.classList.remove('fa-spin'), 500);
+            }).catch(() => {
+                btn.classList.remove('fa-spin');
+            });
         }
 
         document.querySelectorAll('.modal-overlay').forEach(modal => {
